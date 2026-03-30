@@ -6,7 +6,7 @@ import { z } from 'zod';
 export const A2UIMessageSchema = z.object({
   version: z.string().default('1.0'),
   type: z.string(), 
-  props: z.record(z.any()), 
+  props: z.record(z.string(), z.any()),
   metadata: z.object({
     agentId: z.string(),
     timestamp: z.number(),

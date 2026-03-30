@@ -1,14 +1,18 @@
-// [Cell 1]: src/components/a2ui/index.ts
-// 에이전트가 보낼 'type' 문자열과 실제 React 컴포넌트를 매핑합니다.
-
 import { MenuCard } from './MenuCard';
 import { OptionSelector } from './OptionSelector';
 import { CartView } from './CartView';
+import { PaymentSummary } from './PaymentSummary';
+import { AllergyBanner } from "./AllergyBanner";
+import { OrderComplete } from "./OrderComplete";
+
 
 export const A2UI_COMPONENT_MAP = {
-  'MENU_CARD': MenuCard,
-  'OPTION_SELECTOR': OptionSelector,
-  'CART_VIEW': CartView,
+  'MenuCard': MenuCard,           // 변경: MENU_CARD → MenuCard
+  'OptionSelector': OptionSelector, // 변경: OPTION_SELECTOR → OptionSelector
+  'Cart': CartView,           // 변경: CART_VIEW → CartView
+  'PaymentSummary': PaymentSummary, // 추가: PaymentSummary
+  'AllergyBanner': AllergyBanner,
+  'OrderComplete': OrderComplete,
 } as const;
 
 export type A2UIComponentType = keyof typeof A2UI_COMPONENT_MAP;
