@@ -4,6 +4,10 @@ import { CartView } from './CartView';
 import { PaymentSummary } from './PaymentSummary';
 import { AllergyBanner } from "./AllergyBanner";
 import { OrderComplete } from "./OrderComplete";
+import { ComparisonTable } from "./ComparisonTable";
+import { ComboRecommendation } from "./ComboRecommendation";
+import { OrderHistory } from "./OrderHistory";
+
 
 
 export const A2UI_COMPONENT_MAP = {
@@ -13,6 +17,9 @@ export const A2UI_COMPONENT_MAP = {
   'PaymentSummary': PaymentSummary, // 추가: PaymentSummary
   'AllergyBanner': AllergyBanner,
   'OrderComplete': OrderComplete,
+  'ComparisonTable': ComparisonTable,
+  'ComboRecommendation': ComboRecommendation,
+  'OrderHistory': OrderHistory,
 } as const;
 
 export type A2UIComponentType = keyof typeof A2UI_COMPONENT_MAP;
