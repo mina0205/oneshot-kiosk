@@ -22,7 +22,8 @@ def get_menus():
 
 @app.get("/menus/search")
 def search_menus(maxCalories : int = None):
-    result = menus
+    if maxCalories is None:
+        return menus
     result = []
     for m in menus : 
         if m["calories"] <= maxCalories:
