@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { A2UIRenderer, A2UIMessage } from "@/components/a2ui/A2UIRenderer";
 import { ChatInput } from "@/components/ui/ChatInput";
 import { menuData } from "@/data/menuData";
+import { fetchMenus } from "@/lib/api";
 
-// 더미 시나리오 import
 import { menuCardMessages } from "@/dummy/menuCardMessages";
 import { cartMessages } from "@/dummy/cartMessages";
 import { optionSelectorMessages } from "@/dummy/optionSelectorMessages";
@@ -16,28 +16,52 @@ import { comboMessages } from "@/dummy/comboMessages";
 import { orderHistoryMessages } from "@/dummy/orderHistoryMessages";
 import { comparisonMessages } from "@/dummy/comparisonMessages";
 
-// 전체 메뉴 (기본 화면)
-const allMenuMessages: A2UIMessage[] = menuData.map((menu, index) => ({
+const localMenuMessages: A2UIMessage[] = menuData.map((menu, index) => ({
   id: `msg-menu-${index}`,
   type: "MenuCard",
   props: menu,
 }));
 
-// 시나리오 목록
-const SCENARIOS: Record<string, { label: string; messages: A2UIMessage[] }> = {
-  all: { label: "전체 메뉴", messages: [...allMenuMessages, ...cartMessages] },
-  "s02": { label: "S-02 칼로리 추천", messages: [...menuCardMessages, ...cartMessages] },
-  "s03": { label: "S-03 세트 옵션", messages: [...optionSelectorMessages, ...cartMessages] },
-  "s04": { label: "S-04 알레르기 필터", messages: [...allergyMessages, ...cartMessages] },
-  "s05": { label: "S-05 예산 추천", messages: [...comboMessages, ...cartMessages] },
-  "s06": { label: "S-06 리오더", messages: [...orderHistoryMessages, ...cartMessages] },
-  "s07": { label: "S-07 메뉴 비교", messages: [...comparisonMessages, ...cartMessages] },
-  "s09": { label: "S-09 결제 화면", messages: paymentMessages },
-  "done": { label: "주문 완료", messages: orderCompleteMessages },
-};
-
 export default function HomePage() {
   const [scenario, setScenario] = useState<string>("all");
+  const [apiMenuMessages, setApiMenuMessages] = useState<A2UIMessage[] | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchMenus()
+      .then((menus) => {
+        const messages: A2UIMessage[] = menus.map((menu: any, index: number) => ({
+          id: `api-menu-${index}`,
+          type: "MenuCard",
+          props: menu,
+        }));
+        setApiMenuMessages(messages);
+        setApiError(null);
+      })
+      .catch((err) => {
+        console.warn("BE API 연결 실패, 로컬 더미 사용:", err.message);
+        setApiError(err.message);
+        setApiMenuMessages(null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const allMenuMessages = apiMenuMessages ?? localMenuMessages;
+
+  const SCENARIOS: Record<string, { label: string; messages: A2UIMessage[] }> = {
+    all: { label: "전체 메뉴", messages: [...allMenuMessages, ...cartMessages] },
+    s02: { label: "S-02 칼로리 추천", messages: [...menuCardMessages, ...cartMessages] },
+    s03: { label: "S-03 세트 옵션", messages: [...optionSelectorMessages, ...cartMessages] },
+    s04: { label: "S-04 알레르기 필터", messages: [...allergyMessages, ...cartMessages] },
+    s05: { label: "S-05 예산 추천", messages: [...comboMessages, ...cartMessages] },
+    s06: { label: "S-06 리오더", messages: [...orderHistoryMessages, ...cartMessages] },
+    s07: { label: "S-07 메뉴 비교", messages: [...comparisonMessages, ...cartMessages] },
+    s09: { label: "S-09 결제 화면", messages: paymentMessages },
+    done: { label: "주문 완료", messages: orderCompleteMessages },
+  };
+
   const messages = SCENARIOS[scenario].messages;
 
   return (
@@ -46,9 +70,17 @@ export default function HomePage() {
         <header className="mb-6 text-center">
           <h1 className="text-3xl font-black text-slate-900">OneShot AI</h1>
           <p className="text-slate-500 mt-1">시나리오별 더미 데이터 테스트</p>
+          {apiError ? (
+            <p className="text-xs text-orange-500 mt-1">
+              ⚠️ BE 서버 미연결 — 로컬 더미 데이터 사용 중
+            </p>
+          ) : apiMenuMessages ? (
+            <p className="text-xs text-green-500 mt-1">
+              ✅ BE API 연동 성공 — 메뉴 {apiMenuMessages.length}개 로드
+            </p>
+          ) : null}
         </header>
 
-        {/* 시나리오 전환 버튼 */}
         <div className="flex flex-wrap gap-2 justify-center mb-6">
           {Object.entries(SCENARIOS).map(([key, { label }]) => (
             <button
@@ -66,9 +98,13 @@ export default function HomePage() {
         </div>
 
         <div className="pb-20">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl mx-auto items-start">
-            <A2UIRenderer messages={messages} />
-          </div>
+          {loading ? (
+            <p className="text-center text-slate-400">메뉴 불러오는 중...</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl mx-auto items-start">
+              <A2UIRenderer messages={messages} />
+            </div>
+          )}
         </div>
       </main>
 
