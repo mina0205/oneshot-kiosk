@@ -15,6 +15,10 @@ import { orderCompleteMessages } from "@/dummy/orderCompleteMessages";
 import { comboMessages } from "@/dummy/comboMessages";
 import { orderHistoryMessages } from "@/dummy/orderHistoryMessages";
 import { comparisonMessages } from "@/dummy/comparisonMessages";
+import { promotionMessages } from "@/dummy/promotionMessages";
+import { couponMessages } from "@/dummy/couponMessages";
+import { customBuilderMessages } from "@/dummy/customBuilderMessages";
+
 
 const localMenuMessages: A2UIMessage[] = menuData.map((menu, index) => ({
   id: `msg-menu-${index}`,
@@ -51,16 +55,18 @@ export default function HomePage() {
   const allMenuMessages = apiMenuMessages ?? localMenuMessages;
 
   const SCENARIOS: Record<string, { label: string; messages: A2UIMessage[] }> = {
-    all: { label: "전체 메뉴", messages: [...allMenuMessages, ...cartMessages] },
-    s02: { label: "S-02 칼로리 추천", messages: [...menuCardMessages, ...cartMessages] },
-    s03: { label: "S-03 세트 옵션", messages: [...optionSelectorMessages, ...cartMessages] },
-    s04: { label: "S-04 알레르기 필터", messages: [...allergyMessages, ...cartMessages] },
-    s05: { label: "S-05 예산 추천", messages: [...comboMessages, ...cartMessages] },
-    s06: { label: "S-06 리오더", messages: [...orderHistoryMessages, ...cartMessages] },
-    s07: { label: "S-07 메뉴 비교", messages: [...comparisonMessages, ...cartMessages] },
-    s09: { label: "S-09 결제 화면", messages: paymentMessages },
-    done: { label: "주문 완료", messages: orderCompleteMessages },
-  };
+  all: { label: "전체 메뉴", messages: [...allMenuMessages, ...cartMessages] },
+  s02: { label: "S-02 칼로리 추천", messages: [...menuCardMessages, ...cartMessages] },
+  s03: { label: "S-03 세트 옵션", messages: [...optionSelectorMessages, ...cartMessages] },
+  s04: { label: "S-04 알레르기 필터", messages: [...allergyMessages, ...cartMessages] },
+  s05: { label: "S-05 예산 추천", messages: [...comboMessages, ...cartMessages] },
+  s06: { label: "S-06 리오더", messages: [...orderHistoryMessages, ...cartMessages] },
+  s07: { label: "S-07 메뉴 비교", messages: [...comparisonMessages, ...cartMessages] },
+  s09: { label: "S-09 프로모션", messages: [...promotionMessages, ...couponMessages, ...paymentMessages] },
+  s10: { label: "S-10 커스텀 버거", messages: [...customBuilderMessages, ...cartMessages] },
+  done: { label: "주문 완료", messages: orderCompleteMessages },
+};
+
 
   const messages = SCENARIOS[scenario].messages;
 
