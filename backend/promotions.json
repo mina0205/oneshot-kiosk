@@ -1,0 +1,35 @@
+[
+  {
+    "promotionId": "promo-001",
+    "title": "리아 런치 20% 할인",
+    "description": "평일 11시~14시, 리아 불고기·리아 새우 세트 20% 할인",
+    "discountType": "rate",
+    "discountValue": 0.2,
+    "applicableMenuIds": ["burger-001", "burger-008"],
+    "startDate": "2026-04-01",
+    "endDate": "2026-04-30",
+    "isActive": true
+  },
+  {
+    "promotionId": "promo-002",
+    "title": "미라클버거 출시 기념 1000원 할인",
+    "description": "NEW 미라클버거 단품 주문 시 1000원 할인",
+    "discountType": "amount",
+    "discountValue": 1000,
+    "applicableMenuIds": ["burger-005"],
+    "startDate": "2026-04-01",
+    "endDate": "2026-05-31",
+    "isActive": true
+  },
+  {
+    "promotionId": "promo-003",
+    "title": "치킨 세트 500원 할인",
+    "description": "후라이드·양념치킨 세트 주문 시 500원 할인",
+    "discountType": "amount",
+    "discountValue": 500,
+    "applicableMenuIds": ["chicken-001", "chicken-002"],
+    "startDate": "2026-03-15",
+    "endDate": "2026-04-15",
+    "isActive": true
+  }
+]
