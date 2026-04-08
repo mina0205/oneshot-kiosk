@@ -4,50 +4,46 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Flame, ShoppingBag } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import { useSessionStore } from "@/store/sessionStore";
+import { useChatStore } from "@/store/chatStore";
 import { MenuItem } from '@/types/kiosk';
 
-// 프로모션 정보 (에이전트가 추가로 보내줄 수 있는 필드)
 interface Promotion {
   title: string;
   originalPrice: number;
   discountedPrice: number;
 }
 
-// 에이전트 JSON → 렌더러로 전달되는 Props
 export interface MenuCardProps extends MenuItem {
   promotion?: Promotion;
 }
 
 export const MenuCard = (menu: MenuCardProps) => {
-  const addItem = useCartStore((state) => state.addItem);
+  const sessionId = useSessionStore((s) => s.sessionId);
+  const addItem = useCartStore((s) => s.addItem);
+  const sendMessage = useChatStore((s) => s.sendMessage);
 
   const handleAddToCart = () => {
-    if (menu.soldOut) return;
-    addItem({
-      cartItemId: `${menu.menuId}-single`,
-      menuId: menu.menuId,
-      name: menu.name,
-      isSet: false,
-      quantity: 1,
-      unitPrice: menu.promotion?.discountedPrice ?? menu.price,
-      subtotal: menu.promotion?.discountedPrice ?? menu.price,
-    });
+    addItem(
+      {
+        cartItemId: `${menu.menuId}-single`,
+        menuId: menu.menuId,
+        name: menu.name,
+        isSet: false,
+        quantity: 1,
+        unitPrice: menu.price,
+        subtotal: menu.price,
+      },
+      sessionId
+    );
   };
 
   const handleSelectSet = () => {
     if (menu.soldOut || !menu.setPrice) return;
-    addItem({
-      cartItemId: `${menu.menuId}-set`,
-      menuId: menu.menuId,
-      name: `${menu.name} 세트`,
-      isSet: true,
-      quantity: 1,
-      unitPrice: menu.setPrice,
-      subtotal: menu.setPrice,
-    });
+    if (sendMessage) {
+      sendMessage(`${menu.name} 세트 주문할게`);
+    }
   };
-
-  const displayPrice = menu.promotion?.discountedPrice ?? menu.price;
 
   return (
     <motion.div

@@ -64,6 +64,36 @@ def agent_chat(req: ChatRequest):
         )
 
     # ──────────────────────────────────────
+    # S-03 세트 주문 (OptionSelector 반환)
+    # ──────────────────────────────────────
+    if any(kw in msg for kw in ["세트 주문", "세트로", "세트 구성"]):
+        menu = None
+        for m in menus:
+            if m["name"] in msg:
+                menu = m
+                break
+        if not menu:
+            menu = menus[0]
+
+        if menu.get("setPrice") is None:
+            return ChatResponse(
+                reply=f"{menu['name']}은(는) 세트 구성이 불가능합니다.",
+                components=None
+            )
+
+        option_selector = {
+            "type": "OptionSelector",
+            "menuId": menu["menuId"],
+            "menuName": menu["name"],
+            "menuPrice": menu["price"],
+            "setPrice": menu["setPrice"],
+        }
+        return ChatResponse(
+            reply=f"{menu['name']} 세트 구성을 선택해주세요!",
+            components=[option_selector]
+        )
+
+    # ──────────────────────────────────────
     # S-02 칼로리 필터 추천
     # "칼로리", "저칼로리", "다이어트", "500 이하"
     # ──────────────────────────────────────
@@ -428,7 +458,7 @@ def agent_chat(req: ChatRequest):
     # ──────────────────────────────────────
     # 메뉴 / 추천 (일반)
     # ──────────────────────────────────────
-    if any(kw in msg for kw in ["메뉴", "추천", "뭐 있", "보여줘"]):
+    if any(kw in msg for kw in ["메뉴", "추천", "뭐 있"]):
         result = menus[:6]
         components = [
             {

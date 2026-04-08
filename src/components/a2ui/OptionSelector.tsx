@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, ChevronRight, ArrowLeft, ShoppingBag } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 import { setOptionsData } from "@/data/menuData";
+import { useSessionStore } from "@/store/sessionStore";
+
 
 // 에이전트(또는 더미)가 보내주는 Props
 export interface OptionSelectorProps {
@@ -20,6 +22,8 @@ type Step = "side" | "drink" | "confirm";
 export const OptionSelector = (props: OptionSelectorProps) => {
   const { menuId, menuName, menuPrice, setPrice } = props;
   const addItem = useCartStore((state) => state.addItem);
+  const sessionId = useSessionStore((s) => s.sessionId);  
+
 
   const [step, setStep] = useState<Step>("side");
   const [selectedSide, setSelectedSide] = useState<string | null>(null);
@@ -43,7 +47,8 @@ export const OptionSelector = (props: OptionSelectorProps) => {
       setOptionsData.sides.find((s) => s.menuId === selectedSide)?.name ?? "";
     const drinkName = selectedDrinkItem?.name ?? "";
 
-    addItem({
+    addItem(
+    {
       cartItemId: `${menuId}-set-${Date.now()}`,
       menuId,
       name: `${menuName} 세트`,
@@ -54,7 +59,9 @@ export const OptionSelector = (props: OptionSelectorProps) => {
       selectedSide: sideName,
       selectedDrink: drinkName,
       drinkSize: selectedDrinkSize,
-    });
+    },
+    sessionId  // BE 동기화용 추가
+  );
 
     // 초기화
     setStep("side");
