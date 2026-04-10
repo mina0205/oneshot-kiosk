@@ -183,5 +183,27 @@
       "sugar": 5,
       "saturatedFat": 3.8
     }
+  },
+  {
+    "menuId": "burger-009",
+    "name": "리아 새우 베이컨",
+    "category": "burger",
+    "price": 6900,
+    "setPrice": 9600,
+    "calories": 519,
+    "description": "통새우와 베이컨의 완벽한 조화",
+    "image": "/images/ria-shrimp-bacon.png",
+    "allergens": ["달걀", "밀", "대두", "우유", "토마토", "돼지고기", "새우"],
+    "isNew": false,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 211,
+      "calories": 519,
+      "protein": 18,
+      "sodium": 960,
+      "sugar": 6,
+      "saturatedFat": 5
+    }
   }
 ]

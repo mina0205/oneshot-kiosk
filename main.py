@@ -28,6 +28,13 @@ class CartItemRequest(BaseModel):
     selectedDrink: Optional[str] = None
     drinkSize: Optional[str] = "R"
     toppings: Optional[List[str]] = []
+    
+class CartItemPatch(BaseModel):
+    quantity: Optional[int] = None
+    selectedSide: Optional[str] = None
+    selectedDrink: Optional[str] = None
+    drinkSize: Optional[str] = None
+    toppings: Optional[List[str]] = None
 
 @app.post("/cart")
 def add_to_cart(item: CartItemRequest):
@@ -77,5 +84,48 @@ def get_cart():
         "items": cart,
         "totalPrice": total_price,
         "totalCalories": total_calories,
+        "itemCount": len(cart)
+    }
+    
+@app.patch("/cart/{cartItemId}")
+def update_cart_item(cartItemId: str, changes: CartItemPatch):
+    cart_item = next((c for c in cart if c["cartItemId"] == cartItemId), None)
+    if not cart_item:
+        raise HTTPException(status_code=404, detail="장바구니 항목을 찾을 수 없습니다")
+ 
+    if changes.quantity is not None:
+        if changes.quantity <= 0:
+            raise HTTPException(status_code=400, detail="수량은 1 이상이어야 합니다")
+        cart_item["quantity"] = changes.quantity
+        cart_item["subtotal"] = cart_item["unitPrice"] * changes.quantity
+ 
+    if changes.selectedSide is not None:
+        cart_item["selectedSide"] = changes.selectedSide
+ 
+    if changes.selectedDrink is not None:
+        cart_item["selectedDrink"] = changes.selectedDrink
+ 
+    if changes.drinkSize is not None:
+        cart_item["drinkSize"] = changes.drinkSize
+ 
+    if changes.toppings is not None:
+        cart_item["toppings"] = changes.toppings
+ 
+    return {
+        "message": "장바구니가 수정되었습니다",
+        "cartItem": cart_item
+    }
+ 
+ 
+@app.delete("/cart/{cartItemId}")
+def delete_cart_item(cartItemId: str):
+    cart_item = next((c for c in cart if c["cartItemId"] == cartItemId), None)
+    if not cart_item:
+        raise HTTPException(status_code=404, detail="장바구니 항목을 찾을 수 없습니다")
+ 
+    cart.remove(cart_item)
+ 
+    return {
+        "message": "장바구니에서 삭제되었습니다",
         "itemCount": len(cart)
     }
