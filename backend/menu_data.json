@@ -8,7 +8,16 @@
     "calories": 462,
     "description": "달콤한 불고기 소스와 신선한 야채의 조화",
     "image": "/images/ria-bulgogi.png",
-    "allergens": ["밀", "대두", "달걀", "우유", "쇠고기", "토마토", "돼지고기", "닭고기"],
+    "allergens": [
+      "밀",
+      "대두",
+      "달걀",
+      "우유",
+      "쇠고기",
+      "토마토",
+      "돼지고기",
+      "닭고기"
+    ],
     "isNew": false,
     "isBestSeller": true,
     "soldOut": false,
@@ -176,30 +185,25 @@
     }
   },
   {
-        "menuId" : "burger-009",
-        "name" : "리아 새우 베이컨",
-        "category" : "burger",
-        "price" : 6900,
-        "setPrice" : 9600,
-        "calories" : 519,
-        "description" : "통새우와 베이컨의 완벽한 조화",
-        "image" : "/images/ria-shrimp-bacon.png",
-        "allergens" : ["달걀", "밀", "대두", "우유", "토마토", "돼지고기", "새우"],
-        "isNew" : false,
-        "isBestSeller" : false,
-        "soldOut" : false,
-        "nutrition" : {
-          "weight" : 211,
-          "calories" : 519,
-          "protein" : 18,
-          "sodium" : 960,
-          "sugar" : 6,
-          "saturatedFat" : 5
-
-        }
-
-
-
+    "menuId": "burger-009",
+    "name": "리아 새우 베이컨",
+    "category": "burger",
+    "price": 6900,
+    "setPrice": 9600,
+    "calories": 519,
+    "description": "통새우와 베이컨의 완벽한 조화",
+    "image": "/images/ria-shrimp-bacon.png",
+    "allergens": ["달걀", "밀", "대두", "우유", "토마토", "돼지고기", "새우"],
+    "isNew": false,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 211,
+      "calories": 519,
+      "protein": 18,
+      "sodium": 960,
+      "sugar": 6,
+      "saturatedFat": 5
+    }
   }
-  
 ]
