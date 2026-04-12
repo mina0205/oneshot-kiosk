@@ -1,5 +1,7 @@
-venv/
+node_modules/
+*.zip
 .venv/
-.idea/
+venv/
 __pycache__/
 *.pyc
+.env
