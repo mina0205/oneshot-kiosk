@@ -1,0 +1,26 @@
+[
+  {
+    "couponId": "coupon-001",
+    "title": "첫 주문 2000원 할인",
+    "discountType": "amount",
+    "discountValue": 2000,
+    "minOrderPrice": 8000,
+    "expiresAt": "2026-06-30"
+  },
+  {
+    "couponId": "coupon-002",
+    "title": "세트 메뉴 10% 할인",
+    "discountType": "rate",
+    "discountValue": 0.1,
+    "minOrderPrice": 10000,
+    "expiresAt": "2026-05-31"
+  },
+  {
+    "couponId": "coupon-003",
+    "title": "5000원 이상 주문 시 1000원 할인",
+    "discountType": "amount",
+    "discountValue": 1000,
+    "minOrderPrice": 5000,
+    "expiresAt": "2026-04-30"
+  }
+]

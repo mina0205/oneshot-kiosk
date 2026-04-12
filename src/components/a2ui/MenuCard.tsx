@@ -1,167 +1,147 @@
+// [Cell 1]: src/components/a2ui/MenuCard.tsx
+
 "use client";
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Flame, ShoppingBag } from 'lucide-react';
+import { Plus, ShoppingBag, Flame } from 'lucide-react'; // 🚀 Flame(칼로리 아이콘) 다시 추가
 import { useCartStore } from '@/store/cartStore';
+import { useSessionStore } from "@/store/sessionStore";
+import { useChatStore } from "@/store/chatStore";
 import { MenuItem } from '@/types/kiosk';
 
-// 프로모션 정보 (에이전트가 추가로 보내줄 수 있는 필드)
 interface Promotion {
   title: string;
   originalPrice: number;
   discountedPrice: number;
 }
 
-// 에이전트 JSON → 렌더러로 전달되는 Props
 export interface MenuCardProps extends MenuItem {
   promotion?: Promotion;
+  imageUrl?: string; 
+  image?: string;
 }
 
 export const MenuCard = (menu: MenuCardProps) => {
-  const addItem = useCartStore((state) => state.addItem);
+  const sessionId = useSessionStore((s) => s.sessionId);
+  const addItem = useCartStore((s) => s.addItem);
+  const sendMessage = useChatStore((s) => s.sendMessage);
 
   const handleAddToCart = () => {
-    if (menu.soldOut) return;
-    addItem({
-      cartItemId: `${menu.menuId}-single`,
-      menuId: menu.menuId,
-      name: menu.name,
-      isSet: false,
-      quantity: 1,
-      unitPrice: menu.promotion?.discountedPrice ?? menu.price,
-      subtotal: menu.promotion?.discountedPrice ?? menu.price,
-    });
+    addItem(
+      {
+        cartItemId: `${menu.menuId}-single-${Date.now()}`,
+        menuId: menu.menuId,
+        name: menu.name,
+        isSet: false,
+        quantity: 1,
+        unitPrice: menu.price,
+        subtotal: menu.price,
+      },
+      sessionId
+    );
   };
 
   const handleSelectSet = () => {
     if (menu.soldOut || !menu.setPrice) return;
-    addItem({
-      cartItemId: `${menu.menuId}-set`,
-      menuId: menu.menuId,
-      name: `${menu.name} 세트`,
-      isSet: true,
-      quantity: 1,
-      unitPrice: menu.setPrice,
-      subtotal: menu.setPrice,
-    });
+    if (sendMessage) {
+      sendMessage(`${menu.name} 세트 주문할게`);
+    }
   };
-
-  const displayPrice = menu.promotion?.discountedPrice ?? menu.price;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-white rounded-3xl p-4 shadow-sm border border-slate-100 flex flex-col gap-3 hover:shadow-md transition-shadow relative overflow-hidden ${
-        menu.soldOut ? "opacity-50 pointer-events-none" : ""
+      className={`bg-white rounded-2xl p-3 shadow-sm border border-slate-100 flex flex-col hover:shadow-md transition-shadow relative overflow-hidden ${
+        menu.soldOut ? "opacity-50 pointer-events-none grayscale" : ""
       }`}
     >
       {/* 뱃지 */}
-      <div className="absolute top-6 left-6 flex gap-1 z-10">
+      <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
         {menu.isBestSeller && (
-          <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-md shadow-sm">
-            BEST
-          </span>
+          <span className="bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm w-fit">BEST</span>
         )}
         {menu.isNew && (
-          <span className="bg-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-md shadow-sm">
-            NEW
-          </span>
-        )}
-        {menu.soldOut && (
-          <span className="bg-gray-500 text-white text-xs font-bold px-2 py-1 rounded-md shadow-sm">
-            품절
-          </span>
+          <span className="bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm w-fit">NEW</span>
         )}
       </div>
 
-      {/* 프로모션 배너 */}
-      {menu.promotion && (
-        <div className="absolute top-6 right-6 z-10">
-          <span className="bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded-md shadow-sm">
-            {menu.promotion.title}
-          </span>
-        </div>
-      )}
-
-      {/* 이미지 */}
-      <div className="w-full h-40 bg-slate-50 rounded-2xl flex items-center justify-center overflow-hidden">
-        <div className="w-full h-full bg-slate-200 flex items-center justify-center text-slate-400 text-sm font-medium">
-          [이미지: {menu.name}]
-        </div>
+      {/* 진짜 햄버거 이미지 영역 */}
+      <div className="w-full h-24 sm:h-28 bg-transparent flex items-center justify-center mb-2 overflow-hidden">
+        {menu.imageUrl || menu.image ? (
+          <img 
+            src={menu.imageUrl || menu.image} 
+            alt={menu.name} 
+            className="w-full h-full object-contain drop-shadow-md hover:scale-105 transition-transform"
+          />
+        ) : (
+          <div className="w-full h-full bg-slate-50 flex items-center justify-center text-slate-300 text-xs rounded-xl">
+            이미지 준비중
+          </div>
+        )}
       </div>
 
-      {/* 메뉴 정보 */}
-      <div className="flex flex-col flex-1">
-        <h3 className="text-xl font-bold text-slate-800 tracking-tight">{menu.name}</h3>
-        <p className="text-sm text-slate-500 line-clamp-2 mt-1 leading-snug">
-          {menu.description}
-        </p>
+      {/* 메뉴 이름 */}
+      <h3 className="text-sm sm:text-base font-bold text-slate-800 tracking-tight truncate text-center mb-1">
+        {menu.name}
+      </h3>
+
+      {/* 🚀 핵심 정보 복구: 칼로리 & 알레르기 (아주 작게 배치하여 공간 절약) */}
+      <div className="flex flex-col items-center gap-1 mb-3 min-h-[36px]">
+        {menu.calories && (
+          <span className="text-[10px] text-slate-500 flex items-center gap-0.5 font-medium">
+            <Flame size={10} className="text-orange-400" /> {menu.calories} kcal
+          </span>
+        )}
+        {menu.allergens && menu.allergens.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-0.5 px-1">
+            {menu.allergens.map((a) => (
+              <span key={a} className="text-[9px] bg-orange-50 text-orange-600 border border-orange-100 px-1 py-[1px] rounded-sm">
+                {a}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* 알레르기 태그 */}
-      {menu.allergens.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {menu.allergens.map((a) => (
-            <span
-              key={a}
-              className="rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-[10px] font-medium text-orange-600"
-            >
-              {a}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* 가격 & 버튼 */}
-      <div className="flex justify-between items-end mt-2 pt-2 border-t border-slate-50">
-        <div className="flex flex-col">
-          <span className="text-xs text-slate-400 flex items-center gap-1 mb-1 font-medium">
-            <Flame size={12} className="text-orange-400" /> {menu.calories} kcal
+      {/* 가격 정보 (맘스터치 UI 스타일) */}
+      <div className="flex flex-col gap-1.5 mb-3 mt-auto">
+        <div className="flex justify-center items-center gap-1.5">
+          <span className="bg-orange-100 text-orange-600 text-[10px] font-black px-1.5 py-0.5 rounded-sm">단</span>
+          <span className="text-sm sm:text-base font-black text-slate-800">
+            {menu.price.toLocaleString()}원
           </span>
-
-          {menu.promotion ? (
-            <div className="flex items-baseline gap-1">
-              <span className="text-sm text-slate-400 line-through">
-                {menu.promotion.originalPrice.toLocaleString()}원
-              </span>
-              <span className="text-2xl font-black text-red-600">
-                {menu.promotion.discountedPrice.toLocaleString()}원
-              </span>
-            </div>
-          ) : (
-            <span className="text-2xl font-black text-orange-600">
-              {menu.price.toLocaleString()}원
-            </span>
-          )}
-
-          {menu.setPrice && (
-            <span className="text-xs text-slate-400 mt-0.5">
-              세트 {menu.setPrice.toLocaleString()}원
-            </span>
-          )}
         </div>
+        {menu.setPrice ? (
+          <div className="flex justify-center items-center gap-1.5">
+            <span className="bg-yellow-100 text-yellow-700 text-[10px] font-black px-1.5 py-0.5 rounded-sm">세</span>
+            <span className="text-sm sm:text-base font-black text-slate-800">
+              {menu.setPrice.toLocaleString()}원
+            </span>
+          </div>
+        ) : (
+          <div className="h-[22px] sm:h-[24px]"></div> 
+        )}
+      </div>
 
-        <div className="flex gap-2">
-          {menu.setPrice && !menu.soldOut && (
-            <button
-              onClick={handleSelectSet}
-              className="border border-slate-900 text-slate-900 p-3 rounded-2xl hover:bg-slate-50 active:scale-95 transition-all"
-              title="세트 주문"
-            >
-              <ShoppingBag size={20} />
-            </button>
-          )}
+      {/* 하단 버튼 */}
+      <div className="flex gap-1.5">
+        <button
+          onClick={handleAddToCart}
+          disabled={menu.soldOut}
+          className="flex-1 bg-slate-900 text-white py-2 rounded-xl text-xs font-bold hover:bg-slate-800 active:scale-95 disabled:bg-slate-300 transition-all flex items-center justify-center gap-1 shadow-sm"
+        >
+          <Plus size={14} /> 담기
+        </button>
+        {menu.setPrice && !menu.soldOut && (
           <button
-            onClick={handleAddToCart}
-            disabled={menu.soldOut}
-            className="bg-slate-900 text-white p-3 rounded-2xl hover:bg-slate-800 active:scale-95 disabled:bg-slate-300 transition-all shadow-md"
-            title="단품 담기"
+            onClick={handleSelectSet}
+            className="flex-1 border-2 border-slate-900 text-slate-900 py-2 rounded-xl text-xs font-bold hover:bg-slate-50 active:scale-95 transition-all flex items-center justify-center gap-1"
           >
-            <Plus size={24} />
+            <ShoppingBag size={14} /> 세트
           </button>
-        </div>
+        )}
       </div>
     </motion.div>
   );

@@ -1,0 +1,449 @@
+[
+  {
+    "menuId": "burger-001",
+    "name": "리아 불고기",
+    "category": "burger",
+    "price": 5800,
+    "setPrice": 8600,
+    "calories": 462,
+    "description": "달콤한 불고기 소스와 신선한 야채의 조화",
+    "image": "/images/ria-bulgogi.png",
+    "allergens": ["밀", "대두", "달걀", "우유", "쇠고기", "토마토", "돼지고기", "닭고기"],
+    "isNew": false,
+    "isBestSeller": true,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 192,
+      "calories": 462,
+      "protein": 21,
+      "sodium": 880,
+      "sugar": 11,
+      "saturatedFat": 11
+    }
+  },
+  {
+    "menuId": "burger-002",
+    "name": "데리버거",
+    "category": "burger",
+    "price": 4500,
+    "setPrice": 7400,
+    "calories": 348,
+    "description": "부드러운 데리야끼 소스의 클래식 버거",
+    "image": "/images/deri-burger.png",
+    "allergens": ["달걀", "밀", "대두", "우유", "쇠고기", "닭고기"],
+    "isNew": false,
+    "isBestSeller": true,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 134,
+      "calories": 348,
+      "protein": 12,
+      "sodium": 590,
+      "sugar": 10,
+      "saturatedFat": 4.9
+    }
+  },
+  {
+    "menuId": "burger-003",
+    "name": "한우불고기버거",
+    "category": "burger",
+    "price": 9800,
+    "setPrice": 12200,
+    "calories": 572,
+    "description": "100% 국내산 한우 패티의 프리미엄 버거",
+    "image": "/images/hanwoo-bulgogi.png",
+    "allergens": ["달걀", "밀", "대두", "우유", "쇠고기", "토마토"],
+    "isNew": false,
+    "isBestSeller": true,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 263,
+      "calories": 572,
+      "protein": 23,
+      "sodium": 800,
+      "sugar": 15,
+      "saturatedFat": 12
+    }
+  },
+  {
+    "menuId": "burger-004",
+    "name": "핫크리스피치킨버거",
+    "category": "burger",
+    "price": 7000,
+    "setPrice": 9600,
+    "calories": 454,
+    "description": "바삭한 치킨 패티와 매콤한 소스의 만남",
+    "image": "/images/hot-crispy.png",
+    "allergens": ["달걀", "밀", "대두", "닭고기", "토마토"],
+    "isNew": false,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 190,
+      "calories": 454,
+      "protein": 22,
+      "sodium": 900,
+      "sugar": 4,
+      "saturatedFat": 5
+    }
+  },
+  {
+    "menuId": "burger-005",
+    "name": "NEW 미라클버거",
+    "category": "burger",
+    "price": 6500,
+    "setPrice": 9200,
+    "calories": 382,
+    "description": "식물성 패티로 만든 새로운 맛의 버거",
+    "image": "/images/miracle-burger.png",
+    "allergens": ["밀", "대두", "토마토"],
+    "isNew": true,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 181,
+      "calories": 382,
+      "protein": 15,
+      "sodium": 600,
+      "sugar": 7,
+      "saturatedFat": 4.6
+    }
+  },
+  {
+    "menuId": "burger-006",
+    "name": "치킨버거",
+    "category": "burger",
+    "price": 5100,
+    "setPrice": 8000,
+    "calories": 355,
+    "description": "담백한 치킨 패티의 가성비 버거",
+    "image": "/images/chicken-burger.png",
+    "allergens": ["달걀", "밀", "대두", "우유", "닭고기", "땅콩"],
+    "isNew": false,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 141,
+      "calories": 355,
+      "protein": 15,
+      "sodium": 620,
+      "sugar": 8,
+      "saturatedFat": 3.8
+    }
+  },
+  {
+    "menuId": "burger-007",
+    "name": "클래식치즈버거",
+    "category": "burger",
+    "price": 6300,
+    "setPrice": 9000,
+    "calories": 482,
+    "description": "고소한 치즈와 쇠고기 패티의 클래식 조합",
+    "image": "/images/classic-cheese.png",
+    "allergens": ["달걀", "밀", "대두", "우유", "쇠고기"],
+    "isNew": false,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 146,
+      "calories": 482,
+      "protein": 16,
+      "sodium": 710,
+      "sugar": 5,
+      "saturatedFat": 13
+    }
+  },
+  {
+    "menuId": "burger-008",
+    "name": "리아 새우",
+    "category": "burger",
+    "price": 5800,
+    "setPrice": 8600,
+    "calories": 473,
+    "description": "통새우 패티의 바삭한 식감",
+    "image": "/images/ria-shrimp.png",
+    "allergens": ["달걀", "밀", "대두", "우유", "토마토", "새우"],
+    "isNew": false,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 179,
+      "calories": 473,
+      "protein": 15,
+      "sodium": 900,
+      "sugar": 5,
+      "saturatedFat": 3.8
+    }
+  },
+  {
+        "menuId" : "burger-009",
+        "name" : "리아 새우 베이컨",
+        "category" : "burger",
+        "price" : 6900,
+        "setPrice" : 9600,
+        "calories" : 519,
+        "description" : "통새우와 베이컨의 완벽한 조화",
+        "image" : "/images/ria-shrimp-bacon.png",
+        "allergens" : ["달걀", "밀", "대두", "우유", "토마토", "돼지고기", "새우"],
+        "isNew" : false,
+        "isBestSeller" : false,
+        "soldOut" : false,
+        "nutrition" : {
+          "weight" : 211,
+          "calories" : 519,
+          "protein" : 18,
+          "sodium" : 960,
+          "sugar" : 6,
+          "saturatedFat" : 5
+
+        }
+
+
+  },
+
+  {
+    "menuId": "chicken-001",
+    "name": "후라이드치킨",
+    "category": "chicken",
+    "price": 8900,
+    "setPrice": 11500,
+    "calories": 685,
+    "description": "바삭하게 튀긴 클래식 후라이드",
+    "image": "/images/fried-chicken.png",
+    "allergens": ["밀", "대두", "닭고기", "달걀"],
+    "isNew": false,
+    "isBestSeller": true,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 250,
+      "calories": 685,
+      "protein": 38,
+      "sodium": 1100,
+      "sugar": 2,
+      "saturatedFat": 8
+    }
+  },
+  {
+    "menuId": "chicken-002",
+    "name": "양념치킨",
+    "category": "chicken",
+    "price": 9500,
+    "setPrice": 12100,
+    "calories": 742,
+    "description": "매콤달콤 양념소스의 인기 치킨",
+    "image": "/images/yangnyeom-chicken.png",
+    "allergens": ["밀", "대두", "닭고기", "달걀", "토마토"],
+    "isNew": false,
+    "isBestSeller": true,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 265,
+      "calories": 742,
+      "protein": 35,
+      "sodium": 1250,
+      "sugar": 18,
+      "saturatedFat": 7
+    }
+  },
+  {
+    "menuId": "chicken-003",
+    "name": "치킨너겟 (6pcs)",
+    "category": "chicken",
+    "price": 4500,
+    "setPrice": 7200,
+    "calories": 310,
+    "description": "한입 크기의 바삭한 치킨너겟 6조각",
+    "image": "/images/nuggets-6.png",
+    "allergens": ["밀", "대두", "닭고기", "달걀"],
+    "isNew": false,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 120,
+      "calories": 310,
+      "protein": 16,
+      "sodium": 580,
+      "sugar": 1,
+      "saturatedFat": 3.5
+    }
+  },
+  {
+    "menuId": "side-101",
+    "name": "포테이토(단품L)",
+    "category": "side",
+    "price": 2800,
+    "setPrice": null,
+    "calories": 380,
+    "description": "바삭한 감자튀김 라지 사이즈",
+    "image": "/images/potato-single-l.png",
+    "allergens": ["밀"],
+    "isNew": false,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 130,
+      "calories": 380,
+      "protein": 4,
+      "sodium": 450,
+      "sugar": 0,
+      "saturatedFat": 3
+    }
+  },
+  {
+    "menuId": "side-102",
+    "name": "치즈스틱(단품)",
+    "category": "side",
+    "price": 3200,
+    "setPrice": null,
+    "calories": 290,
+    "description": "고소한 모짜렐라 치즈스틱 3개",
+    "image": "/images/cheese-stick-single.png",
+    "allergens": ["밀", "우유", "대두"],
+    "isNew": false,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 90,
+      "calories": 290,
+      "protein": 10,
+      "sodium": 520,
+      "sugar": 2,
+      "saturatedFat": 7
+    }
+  },
+  {
+    "menuId": "side-103",
+    "name": "통오징어링(단품)",
+    "category": "side",
+    "price": 3500,
+    "setPrice": null,
+    "calories": 320,
+    "description": "통오징어를 바삭하게 튀긴 링",
+    "image": "/images/squid-ring-single.png",
+    "allergens": ["밀", "대두", "오징어"],
+    "isNew": false,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 100,
+      "calories": 320,
+      "protein": 8,
+      "sodium": 600,
+      "sugar": 3,
+      "saturatedFat": 2.5
+    }
+  },
+  {
+    "menuId": "drink-101",
+    "name": "펩시콜라(단품R)",
+    "category": "drink",
+    "price": 2000,
+    "setPrice": null,
+    "calories": 150,
+    "description": "시원한 펩시콜라 레귤러",
+    "image": "/images/pepsi-single-r.png",
+    "allergens": [],
+    "isNew": false,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 400,
+      "calories": 150,
+      "protein": 0,
+      "sodium": 30,
+      "sugar": 39,
+      "saturatedFat": 0
+    }
+  },
+  {
+    "menuId": "drink-102",
+    "name": "제로슈거콜라(단품R)",
+    "category": "drink",
+    "price": 2000,
+    "setPrice": null,
+    "calories": 0,
+    "description": "제로 칼로리 콜라",
+    "image": "/images/zero-cola-single-r.png",
+    "allergens": [],
+    "isNew": false,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 400,
+      "calories": 0,
+      "protein": 0,
+      "sodium": 35,
+      "sugar": 0,
+      "saturatedFat": 0
+    }
+  },
+  {
+    "menuId": "drink-103",
+    "name": "아이스아메리카노(단품R)",
+    "category": "drink",
+    "price": 2500,
+    "setPrice": null,
+    "calories": 10,
+    "description": "진한 원두의 아이스 아메리카노",
+    "image": "/images/iced-americano-single.png",
+    "allergens": [],
+    "isNew": false,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 350,
+      "calories": 10,
+      "protein": 0,
+      "sodium": 5,
+      "sugar": 0,
+      "saturatedFat": 0,
+      "caffeine": 120
+    }
+  },
+  {
+    "menuId": "iceshot-001",
+    "name": "초코선데",
+    "category": "iceshot",
+    "price": 2000,
+    "setPrice": null,
+    "calories": 220,
+    "description": "부드러운 바닐라 아이스크림에 초코 소스",
+    "image": "/images/choco-sundae.png",
+    "allergens": ["우유", "대두"],
+    "isNew": false,
+    "isBestSeller": true,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 150,
+      "calories": 220,
+      "protein": 5,
+      "sodium": 120,
+      "sugar": 28,
+      "saturatedFat": 6
+    }
+  },
+  {
+    "menuId": "iceshot-002",
+    "name": "딸기선데",
+    "category": "iceshot",
+    "price": 2000,
+    "setPrice": null,
+    "calories": 210,
+    "description": "새콤달콤 딸기 소스의 선데",
+    "image": "/images/strawberry-sundae.png",
+    "allergens": ["우유", "대두"],
+    "isNew": false,
+    "isBestSeller": false,
+    "soldOut": false,
+    "nutrition": {
+      "weight": 150,
+      "calories": 210,
+      "protein": 4,
+      "sodium": 110,
+      "sugar": 30,
+      "saturatedFat": 5
+    }
+  }
+
+  
+]

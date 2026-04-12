@@ -1,38 +1,26 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import json
+from routers import menus, set_options, cart, orders, promotions, coupons, agent
 
-app = FastAPI()
+app = FastAPI(title="OneShot Kiosk API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
 )
 
-with open ("menu_data.json", "r", encoding = "utf-8") as f:
-    menus = json.load(f)
+# 라우터 등록
+app.include_router(menus.router)
+app.include_router(set_options.router)
+app.include_router(cart.router)
+app.include_router(orders.router)
+app.include_router(promotions.router)
+app.include_router(coupons.router)
+app.include_router(agent.router)
 
-cart = []
 
-@app.get("/menus")
-def get_menus():
-    return menus
-
-@app.get("/menus/search")
-def search_menus(maxCalories : int = None):
-    if maxCalories is None:
-        return menus
-    result = []
-    for m in menus : 
-        if m["calories"] <= maxCalories:
-            result.append(m)
-    return result
-
-@app.get("/menus/{menuId}")
-def get_menu(menuId : str):
-    for menu in menus:
-        if menu["menuId"] == menuId:
-            return menu
-    raise HTTPException(status_code=404, detail="메뉴를 찾을 수 없습니다")
+@app.get("/")
+def root():
+    return {"message": "OneShot Kiosk API is running"}
