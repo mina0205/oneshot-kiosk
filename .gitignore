@@ -41,6 +41,6 @@ yarn-error.log*
 next-env.d.ts
 
 # python
-venv/
+backend/venv/
 .env
 __pycache__/
