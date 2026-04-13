@@ -1,5 +1,4 @@
 // [Cell 1]: src/app/page.tsx
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -12,7 +11,7 @@ import { useSessionStore } from "@/store/sessionStore";
 import { useChatStore } from "@/store/chatStore";
 import { useUIStore } from "@/store/uiStore";
 
-// 더미 데이터 (fallback용)
+// 더미 데이터 메시지 임포트
 import { menuCardMessages } from "@/dummy/menuCardMessages";
 import { cartMessages } from "@/dummy/cartMessages";
 import { optionSelectorMessages } from "@/dummy/optionSelectorMessages";
@@ -26,7 +25,7 @@ import { promotionMessages } from "@/dummy/promotionMessages";
 import { couponMessages } from "@/dummy/couponMessages";
 import { customBuilderMessages } from "@/dummy/customBuilderMessages";
 
-// 🚀 [유틸리티 1] 타임아웃 도우미
+// [Cell 1]: 유틸리티 함수 및 상수 정의
 const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
   return Promise.race([
     promise,
@@ -36,7 +35,6 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
   ]);
 };
 
-// 🚀 [유틸리티 2] 재시도 도우미
 const fetchWithRetry = async <T,>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> => {
   for (let i = 0; i < retries; i++) {
     try {
@@ -56,9 +54,10 @@ const localMenuMessages: A2UIMessage[] = menuData.map((menu, index) => ({
   props: menu,
 }));
 
+// [Cell 2]: HomePage 컴포넌트 메인 로직
 export default function HomePage() {
   const [mode, setMode] = useState<"agent" | "dummy">("agent");
-  const [scenario, setScenario] = useState<string>("all");
+  const [scenario, setScenario] = useState<string>("s04");
 
   const sessionId = useSessionStore((s) => s.sessionId);
   const setSendMessage = useChatStore((s) => s.setSendMessage);
@@ -67,6 +66,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 접근성 상태
   const [isHighContrast, setIsHighContrast] = useState(false);
   const [fontSize, setFontSize] = useState<"normal" | "large">("normal");
 
@@ -141,9 +141,14 @@ export default function HomePage() {
     setSendMessage(handleSend);
   }, [sessionId, allMenuMessages]);
 
+  // 팀원들의 모든 더미 시나리오를 연결합니다.
   const SCENARIOS: Record<string, { label: string; messages: A2UIMessage[] }> = {
-    all: { label: "전체 메뉴", messages: [...allMenuMessages, ...cartMessages] },
-    s03: { label: "세트 옵션", messages: [...optionSelectorMessages, ...cartMessages] },
+    s04: { label: "알레르기", messages: allergyMessages },
+    s05: { label: "예산/칼로리 추천", messages: comboMessages }, // Mina
+    s06: { label: "이전 주문 이력", messages: orderHistoryMessages }, // Mina
+    s07: { label: "메뉴 비교", messages: comparisonMessages }, // Mina
+    s09: { label: "프로모션/쿠폰", messages: [...promotionMessages, ...couponMessages] }, // Sang
+    s10: { label: "커스텀 버거", messages: customBuilderMessages }, // Sang
     done: { label: "주문 완료", messages: orderCompleteMessages },
   };
 
@@ -153,34 +158,45 @@ export default function HomePage() {
 
   const displayMessages = overrideMessages !== null ? overrideMessages : baseMessages;
 
-  // 🚀 1. 레이아웃 분류: 메뉴 카드 vs 그 외 컴포넌트
+  // 레이아웃 분류: 메뉴 카드 vs 그 외 컴포넌트
   const menuMessages = displayMessages.filter(m => m.type === 'MenuCard');
   const otherMessages = displayMessages.filter(m => m.type !== 'MenuCard');
 
+  // [Cell 3]: 렌더링 JSX
   return (
     <div className={`min-h-screen bg-slate-800 flex items-center justify-center p-2 sm:p-6 transition-colors duration-300 ${fontSize === 'large' ? 'text-lg' : 'text-base'}`}>
       
-      {/* 🚀 2. 가상 키오스크 기기 프레임 (relative는 여기까지만!) */}
+      {/* 가상 키오스크 기기 프레임 */}
       <div className={`w-full max-w-[600px] h-[90vh] max-h-[1080px] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative border-8 border-slate-900 transition-colors duration-300 ${isHighContrast ? 'bg-black text-white' : 'bg-slate-50 text-slate-900'}`}>
         
         {/* 접근성 바 (헤더) */}
         <div className="bg-slate-900 text-slate-200 px-6 py-3 flex justify-between items-center z-50 shadow-md">
           <div className="flex gap-4">
-            <button onClick={() => setFontSize(prev => prev === "normal" ? "large" : "normal")} className="flex items-center gap-1.5 hover:text-white transition-colors active:scale-95">
+            <button 
+              onClick={() => setFontSize(prev => prev === "normal" ? "large" : "normal")}
+              className="flex items-center gap-1.5 hover:text-white transition-colors active:scale-95"
+            >
               {fontSize === "normal" ? <ZoomIn size={20}/> : <ZoomOut size={20}/>}
               <span className="font-bold">{fontSize === "normal" ? "글자크게" : "기본크기"}</span>
             </button>
-            <button onClick={() => setIsHighContrast(!isHighContrast)} className={`flex items-center gap-1.5 hover:text-white transition-colors active:scale-95 ${isHighContrast ? 'text-yellow-400' : ''}`}>
+            <button 
+              onClick={() => setIsHighContrast(!isHighContrast)}
+              className={`flex items-center gap-1.5 hover:text-white transition-colors active:scale-95 ${isHighContrast ? 'text-yellow-400' : ''}`}
+            >
               <Contrast size={20}/>
               <span className="font-bold">고대비</span>
             </button>
           </div>
-          <button onClick={() => window.location.reload()} className="flex items-center gap-1.5 bg-red-500 text-white px-3 py-1.5 rounded-full text-sm font-bold hover:bg-red-600 active:scale-95 transition-all">
-            <RotateCcw size={16} /> 처음으로
+          <button 
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-1.5 bg-red-500 text-white px-3 py-1.5 rounded-full text-sm font-bold hover:bg-red-600 active:scale-95 transition-all"
+          >
+            <RotateCcw size={16} />
+            처음으로
           </button>
         </div>
 
-        {/* 🚀 3. 메인 스크롤 영역 (결제 버튼 구출을 위해 pb-60 적용) */}
+        {/* 메인 스크롤 영역 */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-60 scroll-smooth">
           <header className="mb-8 text-center">
             <h1 className="text-4xl font-black mb-4 mt-2">OneShot Kiosk</h1>
@@ -188,6 +204,25 @@ export default function HomePage() {
               <button onClick={() => setMode("agent")} className={`px-6 py-3 rounded-full font-bold transition-all shadow-sm active:scale-95 ${mode === "agent" ? "bg-orange-600 text-white" : (isHighContrast ? "bg-gray-800 text-white" : "bg-white text-slate-600")}`}>AI 에이전트</button>
               <button onClick={() => setMode("dummy")} className={`px-6 py-3 rounded-full font-bold transition-all shadow-sm active:scale-95 ${mode === "dummy" ? "bg-orange-600 text-white" : (isHighContrast ? "bg-gray-800 text-white" : "bg-white text-slate-600")}`}>더미 테스트</button>
             </div>
+
+            {/* 더미 테스트 모드일 때 시나리오 버튼 렌더링 (flex-wrap 적용) */}
+            {mode === "dummy" && (
+              <div className="flex flex-wrap justify-center gap-2 mt-5 animate-in fade-in slide-in-from-top-2 max-w-md mx-auto">
+                {Object.entries(SCENARIOS).map(([key, { label }]) => (
+                  <button
+                    key={key}
+                    onClick={() => setScenario(key)}
+                    className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all shadow-sm ${
+                      scenario === key 
+                        ? "bg-slate-700 text-white" 
+                        : (isHighContrast ? "bg-gray-700 text-slate-300" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100")
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
           </header>
 
           {/* 메뉴 카드 바둑판(Grid) */}
@@ -197,7 +232,7 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* 🚀 4. 기타 컴포넌트(장바구니, 옵션창) - relative 제거로 모달이 튀어나올 수 있게 함 */}
+          {/* 기타 컴포넌트(장바구니, 옵션창, 비교표 등) */}
           {otherMessages.length > 0 && (
             <div className="flex flex-col gap-6 w-full mt-6 mb-10 z-[60] items-center">
               <A2UIRenderer messages={otherMessages} />
@@ -205,7 +240,7 @@ export default function HomePage() {
           )}
         </main>
 
-        {/* 🚀 5. 하단 챗 인풋 고정 (z-index를 조절하여 메뉴보다는 위에, 모달보다는 아래에 배치) */}
+        {/* 하단 챗 인풋 고정 */}
         <div className="absolute bottom-0 left-0 right-0 z-40">
           <ChatInput onSend={handleSend} loading={loading} />
         </div>
