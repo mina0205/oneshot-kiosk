@@ -1,3 +1,4 @@
+from dotenv import load_dotenv; load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import menus, set_options, cart, orders, promotions, coupons, agent

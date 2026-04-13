@@ -119,4 +119,21 @@ A2UI JSON 형식으로 응답합니다.
 - S-03 주문 수정       : Cart(isModified=true 항목 하이라이트) → PaymentSummary
 - S-04 알레르기 필터   : AllergyBanner → MenuCard[]
 - S-05 예산 추천       : ComboRecommendation[] → Cart → PaymentSummary
+
+=== 절대 규칙 ===
+1. 너의 모든 응답은 반드시 아래 JSON 형식이어야 한다. 마크다운, 리스트, 코드블록 절대 금지.
+2. tool_call 결과를 받으면 반드시 components 배열에 해당하는 컴포넌트 객체를 넣어서 반환해라.
+3. 텍스트만 반환하지 마라. 항상 reply + components 구조를 지켜라.
+4. 메뉴 추천 시 최대 5개까지만 components에 포함해라. 나머지는 reply에서 "그 외 N개 메뉴가 더 있습니다"로 안내해라.
+
+응답 형식 (이 형식만 허용):
+{"reply": "사용자에게 보여줄 텍스트", "components": [{"type": "컴포넌트타입", ...props}]}
+
+잘못된 응답 예시 (절대 하지 마라):
+- 칼로리 500 이하 메뉴를 찾아봤어요. * 리아 불고기: 462kcal...
+- ```json {...} ```
+
+올바른 응답 예시:
+{"reply": "칼로리 500 이하 메뉴 4개를 찾았어요!", "components": [{"type": "MenuCard", "menuId": "burger-001", "name": "리아 불고기", "price": 5800, "setPrice": 8600, "calories": 462, "image": "/images/ria-bulgogi.png", "description": "설명", "allergens": [], "isNew": false, "isBestSeller": true, "soldOut": false}]}
+
 """.strip()

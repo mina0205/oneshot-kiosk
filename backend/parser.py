@@ -17,6 +17,11 @@ VALID_COMPONENT_TYPES = {
 def _extract_json(text: str) -> str:
     # 코드블록(```json ... ```) 제거
     text = re.sub(r"```(?:json)?\s*", "", text).strip().rstrip("`").strip()
+    
+    # Python 불리언 → JSON 불리언 변환
+    text = text.replace(": False", ": false").replace(": True", ": true")
+    text = text.replace(":False", ":false").replace(":True", ":true")
+    
     # 첫 번째 { 부터 마지막 } 까지 추출
     start = text.find("{")
     end = text.rfind("}")
@@ -28,9 +33,14 @@ def _extract_json(text: str) -> str:
 def parse_and_validate(raw_text: str) -> dict:
     try:
         json_str = _extract_json(raw_text)
+        # Python 불리언 → JSON 불리언 (이중 안전장치)
+        json_str = json_str.replace(": False", ": false").replace(": True", ": true")
+        json_str = json_str.replace(":False", ":false").replace(":True", ":true")
+        json_str = json_str.replace(", False", ", false").replace(", True", ", true")
+        json_str = json_str.replace("[False", "[false").replace("[True", "[true")
         data = json.loads(json_str)
     except (json.JSONDecodeError, ValueError) as e:
-        logger.warning("A2UI JSON 파싱 실패: %s | 원문 앞 200자: %s", e, raw_text[:200])
+        logger.warning("A2UI JSON 파싱 실패: %s | 원문 앞 200자: %s", e, raw_text[:800])
         return {
             "reply": raw_text,
             "components": [],

@@ -21,7 +21,7 @@ from tool_executor import execute_tool
 from session import get_history, append_user, append_model, clear_session
 from parser import parse_and_validate
 
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = 'gemini-2.5-flash-lite' #"gemini-2.5-flash"
 MAX_TOOL_ROUNDS = 10   
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,8 @@ _client = genai.Client()
 _GENAI_CONFIG = types.GenerateContentConfig(
     system_instruction=SYSTEM_PROMPT,
     tools=TOOLS,
-    temperature=0.2,            
+    temperature=0.2,   
+    max_output_tokens=4096,         
     response_mime_type="text/plain",
 )
 
@@ -50,6 +51,8 @@ async def process_message(session_id: str, user_message: str) -> dict:
         )
 
         model_content = response.candidates[0].content
+        logger.warning("[%s] finish_reason=%s", session_id, response.candidates[0].finish_reason)
+        logger.warning("[%s] 응답길이=%d | 전문: %s", session_id, len(str(model_content)), str(model_content)[:1000])
 
         # 모델 응답을 히스토리에 추가
         append_model(session_id, model_content)
@@ -64,6 +67,18 @@ async def process_message(session_id: str, user_message: str) -> dict:
                 if hasattr(p, "text") and p.text
             )
             logger.debug("[%s] 최종 응답 수신 (len=%d)", session_id, len(final_text))
+            
+            # Python 불리언 → JSON 불리언 변환
+            final_text = final_text.replace(": False", ": false").replace(": True", ": true")
+            final_text = final_text.replace(":False", ":false").replace(":True", ":true")
+            final_text = final_text.replace(", False", ", false").replace(", True", ", true")
+            final_text = final_text.replace("[False", "[false").replace("[True", "[true")
+            
+            # JSON이 잘렸을 경우 복구 시도
+            if final_text.count("{") > final_text.count("}"):
+                final_text = final_text + "]}" * (final_text.count("{") - final_text.count("}"))
+            
+            result = parse_and_validate(final_text)
 
             result = parse_and_validate(final_text)
             _post_process(session_id, result)
