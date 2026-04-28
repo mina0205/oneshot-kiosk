@@ -124,22 +124,22 @@ A2UI JSON 형식으로 응답합니다.
 
 7. ComparisonTable
 {
-  "type": "ComparisonTable",
+  type": "ComparisonTable",
   "menus": [{
     "menuId": string,
     "name": string,
+    "image": string,
     "price": number,
     "setPrice": number | null,
     "calories": number,
-    "allergens": string[],
-    "nutrition": {
-      "protein": number,
-      "sodium": number,
-      "sugar": number,
-      "saturatedFat": number
-    }
+    "protein": number,
+    "sodium": number,
+    "sugar": number,
+    "saturatedFat": number,
+    "allergens": string[]
   }]
 }
+주의: nutrition 객체로 감싸지 말고, protein/sodium/sugar/saturatedFat을 최상위 필드로 직접 넣어라.
 
 8. OrderHistory
 {
@@ -170,28 +170,40 @@ A2UI JSON 형식으로 응답합니다.
   "type": "CouponSelector",
   "coupons": [{
     "couponId": string,
-    "name": string,
-    "discountType": "percentage" | "fixed",
+    "title": string,
+    "discountType": "rate" | "amount",
     "discountValue": number,
-    "minOrderAmount": number,
-    "maxDiscount"?: number
+    "minOrderPrice": number,
+    "expiresAt": string (예: "2025-12-31"),
+    "isApplicable": boolean
   }]
 }
+주의: discountType이 "rate"일 때 discountValue는 퍼센트 정수값으로 넣어라. 10%면 10, 20%면 20. 0.1이나 0.2 같은 소수를 쓰지 마라.
+주의: 필드명은 title(name 아님), minOrderPrice(minOrderAmount 아님)를 사용해라.
+주의: expiresAt은 반드시 포함하고, isApplicable은 항상 true로 설정해라.
+
 
 11. CustomBuilder
 {
   "type": "CustomBuilder",
-  "menuId": string,
-  "menuName": string,
-  "basePrice": number,
-  "toppings": [{
+  "baseMenu": {
+    "menuId": string,
     "name": string,
-    "price": number,
-    "calories": number,
-    "image"?: string
+    "image": string
+  },
+  "currentToppings": [{
+    "name": string,
+    "isOriginal": boolean,
+    "isAdded": boolean,
+    "isRemoved": boolean,
+    "price": number
   }],
-  "selectedToppings"?: string[]
+  "additionalPrice": number
 }
+주의: currentToppings 배열에는 기본 재료(isOriginal=true, isAdded=false, isRemoved=false, price=0)와 추가 가능한 토핑(isOriginal=false, isAdded=false, isRemoved=false, price=토핑가격)을 모두 포함해라.
+주의: get_toppings로 조회한 토핑 목록을 currentToppings에 넣되, isOriginal=false, isAdded=false, isRemoved=false로 설정해라.
+주의: additionalPrice는 초기값 0으로 설정해라.
+
 
 12. OrderComplete
 {
@@ -222,7 +234,7 @@ A2UI JSON 형식으로 응답합니다.
 1. 너의 모든 응답은 반드시 위 JSON 형식이어야 한다. 마크다운, 리스트, 코드블록 절대 금지.
 2. tool_call 결과를 받으면 반드시 components 배열에 해당하는 컴포넌트 객체를 넣어서 반환해라.
 3. 텍스트만 반환하지 마라. 항상 reply + components 구조를 지켜라.
-4. 메뉴 추천 시 최대 5개까지만 components에 포함해라. 나머지는 reply에서 "그 외 N개 메뉴가 더 있습니다"로 안내해라.
+4. 메뉴 추천 시 최대 3개까지만 components에 포함해라. 절대 4개 이상 넣지 마라. 나머지는 reply에서 "그 외 N개 메뉴가 더 있습니다"로 안내해라.
 
 응답 형식 (이 형식만 허용):
 {"reply": "사용자에게 보여줄 텍스트", "components": [{"type": "컴포넌트타입", ...props}]}

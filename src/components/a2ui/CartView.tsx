@@ -163,6 +163,15 @@ export const CartView = (props: CartProps) => {
                       <span>- {item.selectedDrink || '음료 미선택'} {item.drinkSize === 'L' ? '(L)' : '(R)'}</span>
                     </div>
                   )}
+                                    {item.toppings && item.toppings.length > 0 && (
+                    <div className="text-xs text-purple-500 mt-1 flex flex-wrap gap-1">
+                      {item.toppings.map((t: string) => (
+                        <span key={t} className="bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
+                          + {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   <span className="text-sm font-bold text-slate-700 mt-2">
                     {(item.subtotal || 0).toLocaleString()}원

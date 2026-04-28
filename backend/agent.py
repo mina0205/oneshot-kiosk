@@ -21,7 +21,7 @@ from tool_executor import execute_tool
 from session import get_history, append_user, append_model, clear_session
 from parser import parse_and_validate
 
-GEMINI_MODEL = 'gemini-2.5-flash-lite' #"gemini-2.5-flash"
+GEMINI_MODEL = 'gemini-2.5-flash'#'gemini-2.0-flash','gemini-2.5-flash-lite' ,"gemini-2.5-flash"
 MAX_TOOL_ROUNDS = 10   
 
 logger = logging.getLogger(__name__)
@@ -44,11 +44,33 @@ async def process_message(session_id: str, user_message: str) -> dict:
     for round_num in range(MAX_TOOL_ROUNDS):
         logger.debug("[%s] Gemini 호출 round=%d", session_id, round_num)
 
-        response = _client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=get_history(session_id),   # 매 호출마다 전체 히스토리 전달
-            config=_GENAI_CONFIG,
-        )
+        try:
+            response = _client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=get_history(session_id),
+                config=_GENAI_CONFIG,
+            )
+        except Exception as e:
+            error_str = str(e)
+            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                logger.warning("[%s] Gemini API 쿼터 초과. 잠시 후 다시 시도해주세요.", session_id)
+                return {
+                    "reply": "잠시 요청이 많아 처리가 지연되고 있습니다. 10초 후에 다시 시도해주세요.",
+                    "components": [],
+                }
+            elif "503" in error_str or "UNAVAILABLE" in error_str:
+                logger.warning("[%s] Gemini API 서버 과부하.", session_id)
+                return {
+                    "reply": "AI 서버가 일시적으로 바쁩니다. 잠시 후 다시 시도해주세요.",
+                    "components": [],
+                }
+            else:
+                logger.error("[%s] Gemini API 오류: %s", session_id, e)
+                return {
+                    "reply": "AI 응답 중 오류가 발생했습니다. 다시 시도해주세요.",
+                    "components": [],
+                }
+
 
         model_content = response.candidates[0].content
         logger.warning("[%s] finish_reason=%s", session_id, response.candidates[0].finish_reason)
@@ -67,22 +89,38 @@ async def process_message(session_id: str, user_message: str) -> dict:
                 if hasattr(p, "text") and p.text
             )
             logger.debug("[%s] 최종 응답 수신 (len=%d)", session_id, len(final_text))
-            
-            # Python 불리언 → JSON 불리언 변환
-            final_text = final_text.replace(": False", ": false").replace(": True", ": true")
-            final_text = final_text.replace(":False", ":false").replace(":True", ":true")
-            final_text = final_text.replace(", False", ", false").replace(", True", ", true")
-            final_text = final_text.replace("[False", "[false").replace("[True", "[true")
-            
-            # JSON이 잘렸을 경우 복구 시도
-            if final_text.count("{") > final_text.count("}"):
-                final_text = final_text + "]}" * (final_text.count("{") - final_text.count("}"))
-            
-            result = parse_and_validate(final_text)
+
+            # ── Python 불리언 → JSON 불리언 ──
+            final_text = (final_text
+                .replace(": False", ": false").replace(": True", ": true")
+                .replace(":False", ":false").replace(":True", ":true")
+                .replace(", False", ", false").replace(", True", ", true")
+                .replace("[False", "[false").replace("[True", "[true"))
+
+            # ── 잘린 JSON 복구 ──
+            open_braces = final_text.count("{") - final_text.count("}")
+            open_brackets = final_text.count("[") - final_text.count("]")
+
+            if open_braces > 0 or open_brackets > 0:
+                logger.warning("[%s] JSON 잘림 감지 (brace=%d, bracket=%d). 복구 시도.",
+                               session_id, open_braces, open_brackets)
+
+                # 마지막 완전한 MenuCard 객체까지만 유지
+                last_complete = final_text.rfind('"soldOut": false}')
+                if last_complete == -1:
+                    last_complete = final_text.rfind('"soldOut": true}')
+
+                if last_complete != -1:
+                    cut_pos = last_complete + len('"soldOut": false}')
+                    final_text = final_text[:cut_pos] + "]}"
+                else:
+                    # MenuCard가 아닌 경우 닫는 괄호만 추가
+                    final_text += "]" * open_brackets + "}" * open_braces
 
             result = parse_and_validate(final_text)
             _post_process(session_id, result)
             return result
+
 
         # Tool 실행
         tool_result_parts = []
