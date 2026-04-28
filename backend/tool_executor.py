@@ -32,12 +32,19 @@ async def execute_tool(tool_name: str, args: dict) -> Any:
             params = {k: v for k, v in args.items() if v is not None}
             return await _call_backend("get", "/menus/search", params=params)
 
-        # ── 세트 옵션 ─────────────────────────────────────────────
+        elif tool_name == "get_menu_detail":
+            menu_id = args["menuId"]
+            return await _call_backend("get", f"/menus/{menu_id}")
+
+        # ── 세트 옵션 / 토핑 ──────────────────────────────────────
 
         elif tool_name == "get_set_options":
             option_type = args.get("type")
             path = f"/set-options/{option_type}" if option_type else "/set-options"
             return await _call_backend("get", path)
+
+        elif tool_name == "get_toppings":
+            return await _call_backend("get", "/set-options/toppings")
 
         # ── 장바구니 ──────────────────────────────────────────────
 
@@ -59,6 +66,36 @@ async def execute_tool(tool_name: str, args: dict) -> Any:
         elif tool_name == "delete_cart_item":
             cart_item_id = args["cartItemId"]
             return await _call_backend("delete", f"/cart/{sid}/items/{cart_item_id}")
+
+        # ── 주문 이력 / 리오더 (S-06) ─────────────────────────────
+
+        elif tool_name == "get_orders":
+            return await _call_backend("get", f"/orders/{sid}")
+
+        elif tool_name == "reorder":
+            order_id = args["order_id"]
+            return await _call_backend("post", f"/orders/{sid}/reorder/{order_id}")
+
+        # ── 프로모션 / 쿠폰 (S-09) ────────────────────────────────
+
+        elif tool_name == "get_promotions":
+            menu_id = args.get("menu_id")
+            if menu_id:
+                return await _call_backend("get", f"/promotions/{menu_id}")
+            return await _call_backend("get", "/promotions")
+
+        elif tool_name == "get_coupons":
+            return await _call_backend("get", "/coupons", params={"session_id": sid})
+
+        # ── 주문 확정 (S-10) ──────────────────────────────────────
+
+        elif tool_name == "create_order":
+            body = {"orderType": args["orderType"]}
+            if args.get("couponId"):
+                body["couponId"] = args["couponId"]
+            return await _call_backend("post", f"/orders/{sid}", json=body)
+
+        # ── 알 수 없는 Tool ───────────────────────────────────────
 
         else:
             return {"error": f"알 수 없는 Tool: {tool_name}"}
