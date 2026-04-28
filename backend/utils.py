@@ -1,5 +1,6 @@
 from data_loader import menus, set_options
 from store import carts
+import re
 
 
 def find_menu(menu_id: str):
@@ -109,3 +110,39 @@ def build_cart_response(session_id: str) -> dict:
         "totalCalories": total_calories,
         "itemCount": item_count,
     }
+
+
+def parse_quantity(text: str) -> int:
+    """텍스트에서 수량을 추출합니다. 기본값 1."""
+    korean_nums = {
+        "한": 1, "두": 2, "세": 3, "네": 4, "다섯": 5,
+        "여섯": 6, "일곱": 7, "여덟": 8, "아홉": 9, "열": 10
+    }
+    for word, num in korean_nums.items():
+        if f"{word} 개" in text or f"{word}개" in text:
+            return num
+    match = re.search(r"(\d+)\s*개", text)
+    if match:
+        return int(match.group(1))
+    return 1
+
+
+def parse_drink_size(text: str) -> str:
+    """텍스트에서 음료 사이즈를 추출합니다. 기본값 'R'."""
+    if any(kw in text.lower() for kw in ["라지", "large", "l사이즈", "큰"]):
+        return "L"
+    return "R"
+
+
+def calculate_coupon_discount(coupon: dict, total_price: int) -> int:
+    """쿠폰 할인 금액을 계산합니다."""
+    discount_type = coupon.get("discountType", "")
+    discount_value = coupon.get("discountValue", 0)
+
+    if discount_type == "percentage":
+        discount = int(total_price * discount_value / 100)
+        max_discount = coupon.get("maxDiscount", float("inf"))
+        return min(discount, max_discount)
+    elif discount_type == "fixed":
+        return min(discount_value, total_price)
+    return 0

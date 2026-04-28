@@ -11,6 +11,12 @@ VALID_COMPONENT_TYPES = {
     "PaymentSummary",
     "AllergyBanner",
     "ComboRecommendation",
+    "ComparisonTable",
+    "CustomBuilder",
+    "PromotionBanner",
+    "CouponSelector",
+    "OrderHistory",
+    "OrderComplete",
 }
 
 
