@@ -21,7 +21,7 @@ from tool_executor import execute_tool
 from session import get_history, append_user, append_model, clear_session
 from parser import parse_and_validate
 
-GEMINI_MODEL = 'gemini-2.5-flash'#'gemini-2.0-flash','gemini-2.5-flash-lite' ,"gemini-2.5-flash"
+GEMINI_MODEL = 'gemini-2.5-flash-lite'
 MAX_TOOL_ROUNDS = 10   
 
 logger = logging.getLogger(__name__)
@@ -76,6 +76,14 @@ async def process_message(session_id: str, user_message: str) -> dict:
         logger.warning("[%s] finish_reason=%s", session_id, response.candidates[0].finish_reason)
         logger.warning("[%s] 응답길이=%d | 전문: %s", session_id, len(str(model_content)), str(model_content)[:1000])
 
+        # ── parts가 None인 경우 처리 ──
+        if not model_content.parts:
+            logger.warning("[%s] Gemini가 빈 응답을 반환했습니다.", session_id)
+            return {
+                "reply": "죄송합니다. 응답을 생성하지 못했습니다. 다시 말씀해주세요.",
+                "components": []
+            }
+        
         # 모델 응답을 히스토리에 추가
         append_model(session_id, model_content)
 
@@ -128,8 +136,8 @@ async def process_message(session_id: str, user_message: str) -> dict:
             fc = part.function_call
             tool_args = dict(fc.args) if fc.args else {}
 
-            # session_id 자동 주입 (Gemini가 누락할 경우 대비)
-            tool_args.setdefault("session_id", session_id)
+            # session_id 강제 주입 (Gemini가 임의 값을 넣는 것 방지)
+            tool_args["session_id"] = session_id
 
             logger.info("[%s] Tool 실행: %s(%s)", session_id, fc.name, tool_args)
             tool_result = await execute_tool(fc.name, tool_args)

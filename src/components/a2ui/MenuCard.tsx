@@ -19,7 +19,7 @@ interface Promotion {
 export interface MenuCardProps extends MenuItem {
   promotion?: Promotion;
   imageUrl?: string; 
-  image?: string;
+  //image?: string;
 }
 
 export const MenuCard = (menu: MenuCardProps) => {

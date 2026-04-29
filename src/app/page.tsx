@@ -103,6 +103,7 @@ export default function HomePage() {
   const allMenuMessages = apiMenuMessages ?? localMenuMessages;
 
   const handleSend = async (message: string) => {
+    useUIStore.getState().setOverrideMessages(null);  // ← 이 줄 추가
     setLoading(true);
     setError(null);
     setChatHistory((prev) => [...prev, { role: "user", text: message }]);

@@ -139,8 +139,8 @@ TOOLS: list[types.Tool] = [
                     "menuId": types.Schema(type=types.Type.STRING, description="메뉴 ID"),
                     "quantity": types.Schema(type=types.Type.INTEGER, description="수량 (기본 1)"),
                     "isSet": types.Schema(type=types.Type.BOOLEAN, description="세트 여부"),
-                    "selectedSide": types.Schema(type=types.Type.STRING, description="세트 사이드 이름"),
-                    "selectedDrink": types.Schema(type=types.Type.STRING, description="세트 음료 이름"),
+                    "selectedSide": types.Schema(type=types.Type.STRING, description="세트 사이드 메뉴 이름 (예: '포테이토(R)', '코울슬로'). ID가 아닌 이름을 넣어라."),
+                    "selectedDrink": types.Schema(type=types.Type.STRING, description="세트 음료 이름 (예: '제로슈거콜라', '사이다'). ID가 아닌 이름을 넣어라."),
                     "drinkSize": types.Schema(type=types.Type.STRING, description="음료 사이즈: R | L"),
 
                     "toppings": types.Schema(

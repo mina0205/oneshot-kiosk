@@ -47,12 +47,35 @@ async def execute_tool(tool_name: str, args: dict) -> Any:
             return await _call_backend("get", "/set-options/toppings")
 
         # ── 장바구니 ──────────────────────────────────────────────
-
-        elif tool_name == "get_cart":
-            return await _call_backend("get", f"/cart/{sid}")
-
         elif tool_name == "add_to_cart":
             body = {k: v for k, v in args.items() if k != "session_id" and v is not None}
+
+            # ── 사이드/음료 검증 ──
+            for field, option_type in [("selectedSide", "sides"), ("selectedDrink", "drinks")]:
+                val = body.get(field, "")
+                if not val:
+                    continue
+                try:
+                    options = await _call_backend("get", f"/set-options/{option_type}")
+                    valid_names = [opt["name"] for opt in options]
+
+                    # ID로 들어온 경우 이름으로 변환
+                    if val.startswith("side-") or val.startswith("drink-"):
+                        for opt in options:
+                            if opt.get("optionId") == val:
+                                body[field] = opt["name"]
+                                break
+                        else:
+                            return {"error": f"'{val}'은(는) 존재하지 않는 옵션입니다. 가능: {', '.join(valid_names)}"}
+                    # 이름이 정확히 일치하지 않는 경우 거부
+                    elif val not in valid_names:
+                        return {
+                            "error": f"'{val}'은(는) 선택할 수 없는 옵션입니다. "
+                                    f"선택 가능: {', '.join(valid_names)}"
+                        }
+                except Exception as ex:
+                    logger.warning("옵션 검증 실패 [%s]: %s", field, ex)
+
             return await _call_backend("post", f"/cart/{sid}/items", json=body)
 
         elif tool_name == "update_cart_item":

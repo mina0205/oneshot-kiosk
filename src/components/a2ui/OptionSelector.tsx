@@ -16,20 +16,31 @@ export interface OptionSelectorProps {
   menuPrice: number;
   setPrice: number;
   image?: string;
+  initialStep?: Step;        // 추가
+  preSelectedSide?: string;  // 추가
+  preSelectedDrink?: string; // 추가
 }
 
 type Step = "side" | "drink" | "confirm";
 
 export const OptionSelector = (props: OptionSelectorProps) => {
-  const { menuId, menuName, menuPrice, setPrice } = props;
+  const { menuId, menuName, menuPrice = 0, setPrice = 0, initialStep, preSelectedSide, preSelectedDrink } = props;
   const addItem = useCartStore((state) => state.addItem);
   const sessionId = useSessionStore((s) => s.sessionId);  
   
   const goHome = useUIStore((s) => s.goHome); 
 
-  const [step, setStep] = useState<Step>("side");
-  const [selectedSide, setSelectedSide] = useState<string | null>(null);
-  const [selectedDrink, setSelectedDrink] = useState<string | null>(null);
+  const [step, setStep] = useState<Step>(initialStep ?? "side");
+  const [selectedSide, setSelectedSide] = useState<string | null>(
+    preSelectedSide
+      ? setOptionsData.sides.find(s => s.name === preSelectedSide)?.menuId ?? null
+      : null
+  );
+  const [selectedDrink, setSelectedDrink] = useState<string | null>(
+    preSelectedDrink
+      ? setOptionsData.drinks.find(d => d.name === preSelectedDrink)?.menuId ?? null
+      : null
+  );
   const [selectedDrinkSize, setSelectedDrinkSize] = useState<"R" | "L">("R");
 
   const sidePriceDiff = setOptionsData.sides.find((s) => s.menuId === selectedSide)?.priceDiff ?? 0;
