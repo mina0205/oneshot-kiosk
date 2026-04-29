@@ -37,7 +37,7 @@ export const ChatInput = ({ onSend, loading = false }: ChatInputProps) => {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           disabled={loading} // 부모가 로딩 중이라고 하면 타자 못 치게 막기
-          placeholder={loading ? "AI가 답변을 생성하고 있습니다..." : "원하시는 메뉴를 자연스럽게 말씀해 주세요. (예: 한우불고기버거 1개 추가해줘)"}
+          placeholder={loading ? "AI가 답변을 생성하고 있습니다..." : "원하시는 메뉴를 말씀해 주세요. (예: 데리버거 1개 추가해줘)"}
           className="w-full bg-slate-100 text-slate-900 placeholder:text-slate-400 rounded-full py-4 pl-6 pr-16 outline-none focus:ring-2 focus:ring-orange-500 transition-all text-lg font-medium disabled:opacity-70 disabled:cursor-not-allowed"
         />
         <button
