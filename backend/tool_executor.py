@@ -47,6 +47,9 @@ async def execute_tool(tool_name: str, args: dict) -> Any:
             return await _call_backend("get", "/set-options/toppings")
 
         # ── 장바구니 ──────────────────────────────────────────────
+        elif tool_name == "get_cart":
+            return await _call_backend("get", f"/cart/{sid}")
+
         elif tool_name == "add_to_cart":
             body = {k: v for k, v in args.items() if k != "session_id" and v is not None}
 

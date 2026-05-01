@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect,useMemo } from "react";
 import { ZoomIn, ZoomOut, Contrast, RotateCcw } from "lucide-react";
 import { A2UIRenderer, A2UIMessage } from "@/components/a2ui/A2UIRenderer";
 import { ChatInput } from "@/components/ui/ChatInput";
@@ -9,19 +9,6 @@ import { fetchMenus, sendChat } from "@/lib/api";
 import { useSessionStore } from "@/store/sessionStore";
 import { useChatStore } from "@/store/chatStore";
 import { useUIStore } from "@/store/uiStore";
-
-import { menuCardMessages } from "@/dummy/menuCardMessages";
-import { cartMessages } from "@/dummy/cartMessages";
-import { optionSelectorMessages } from "@/dummy/optionSelectorMessages";
-import { paymentMessages } from "@/dummy/paymentMessages";
-import { allergyMessages } from "@/dummy/allergyMessages";
-import { orderCompleteMessages } from "@/dummy/orderCompleteMessages";
-import { comboMessages } from "@/dummy/comboMessages";
-import { orderHistoryMessages } from "@/dummy/orderHistoryMessages";
-import { comparisonMessages } from "@/dummy/comparisonMessages";
-import { promotionMessages } from "@/dummy/promotionMessages";
-import { couponMessages } from "@/dummy/couponMessages";
-import { customBuilderMessages } from "@/dummy/customBuilderMessages";
 
 const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
   return Promise.race([
@@ -52,8 +39,6 @@ const localMenuMessages: A2UIMessage[] = menuData.map((menu, index) => ({
 }));
 
 export default function HomePage() {
-  const [mode, setMode] = useState<"agent" | "dummy">("agent");
-  const [scenario, setScenario] = useState<string>("s04");
 
   const sessionId = useSessionStore((s) => s.sessionId);
   const setSendMessage = useChatStore((s) => s.setSendMessage);
@@ -71,6 +56,28 @@ export default function HomePage() {
 
   const [apiMenuMessages, setApiMenuMessages] = useState<A2UIMessage[] | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  const [activeCategory, setActiveCategory] = useState<string>("burger");
+
+  // 카테고리 정의
+  const CATEGORIES = [
+  { key: "burger", label: "🍔 버거" },
+  { key: "side",   label: "🍗 사이드" },
+  { key: "drink",  label: "🥤 음료" },
+];
+
+  // 메뉴 필터링 함수
+  const filteredMenus = useMemo(() => {
+    const all = apiMenuMessages ?? localMenuMessages;
+    const menus = all.filter((msg) => msg.type === "MenuCard");
+    return menus.filter((msg) => {
+      const cat = msg.props?.category;
+      if (activeCategory === "side") {
+        return cat === "side" || cat === "chicken" || cat === "iceshot";
+      }
+      return cat === activeCategory;
+    });
+  }, [apiMenuMessages, localMenuMessages, activeCategory]);
 
   useEffect(() => {
     fetchWithRetry(() => fetchMenus(), 3, 1000)
@@ -119,7 +126,7 @@ export default function HomePage() {
         }));
         setAgentMessages(newMessages);
       } else {
-        setAgentMessages([...allMenuMessages, ...cartMessages]);
+        setAgentMessages([]);
       }
     } catch (err: any) {
       if (err.message === "TIMEOUT") {
@@ -137,24 +144,8 @@ export default function HomePage() {
     setSendMessage(handleSend);
   }, [sessionId, allMenuMessages]);
 
-  const SCENARIOS: Record<string, { label: string; messages: A2UIMessage[] }> = {
-    s04: { label: "알레르기", messages: allergyMessages },
-    s05: { label: "예산/칼로리 추천", messages: comboMessages },
-    s06: { label: "이전 주문 이력", messages: orderHistoryMessages },
-    s07: { label: "메뉴 비교", messages: comparisonMessages },
-    s09: { label: "프로모션/쿠폰", messages: [...promotionMessages, ...couponMessages] },
-    s10: { label: "커스텀 버거", messages: customBuilderMessages },
-    done: { label: "주문 완료", messages: orderCompleteMessages },
-  };
 
-  const baseMessages = mode === "agent"
-    ? agentMessages.length > 0 ? agentMessages : [...allMenuMessages, ...cartMessages]
-    : SCENARIOS[scenario].messages;
-
-  const displayMessages = overrideMessages !== null ? overrideMessages : baseMessages;
-
-  const menuMessages = displayMessages.filter(m => m.type === "MenuCard");
-  const otherMessages = displayMessages.filter(m => m.type !== "MenuCard");
+  const baseMessages = agentMessages.length > 0 ? agentMessages : allMenuMessages;
 
   return (
     <div className={`min-h-screen bg-lotteria-brown flex items-center justify-center p-2 sm:p-6 transition-colors duration-300 ${fontSize === "large" ? "text-lg" : "text-base"}`}>
@@ -201,51 +192,87 @@ export default function HomePage() {
             </div>
             <p className="text-sm text-slate-500 -mt-2 mb-4">OneShot Kiosk</p>
 
-            <div className="flex justify-center gap-3">
+            {/* 바로가기 버튼 */}
+            <div className="flex justify-center gap-2 mb-4">
               <button
-                onClick={() => setMode("agent")}
-                className={`px-6 py-3 rounded-full font-bold transition-all shadow-sm active:scale-95 ${mode === "agent" ? "bg-lotteria-red text-white" : isHighContrast ? "bg-gray-800 text-white" : "bg-white text-slate-600 border border-slate-200"}`}
+                onClick={() => handleSend("현재 진행 중인 프로모션 보여줘")}
+                disabled={loading}
+                className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all shadow-sm"
               >
-                AI 에이전트
+                🏷️ 프로모션
               </button>
               <button
-                onClick={() => setMode("dummy")}
-                className={`px-6 py-3 rounded-full font-bold transition-all shadow-sm active:scale-95 ${mode === "dummy" ? "bg-lotteria-red text-white" : isHighContrast ? "bg-gray-800 text-white" : "bg-white text-slate-600 border border-slate-200"}`}
+                onClick={() => handleSend("쿠폰 보여줘")}
+                disabled={loading}
+                className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all shadow-sm"
               >
-                더미 테스트
+                🎟️ 쿠폰
+              </button>
+              <button
+                onClick={() => handleSend("장바구니 보여줘")}
+                disabled={loading}
+                className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-red text-white rounded-full text-sm font-bold hover:bg-lotteria-red-dark active:scale-95 transition-all shadow-sm"
+              >
+                🛒 장바구니
               </button>
             </div>
 
-            {mode === "dummy" && (
-              <div className="flex flex-wrap justify-center gap-2 mt-5 animate-in fade-in slide-in-from-top-2 max-w-md mx-auto">
-                {Object.entries(SCENARIOS).map(([key, { label }]) => (
-                  <button
-                    key={key}
-                    onClick={() => setScenario(key)}
-                    className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-bold transition-all shadow-sm ${
-                      scenario === key
-                        ? "bg-lotteria-red text-white"
-                        : isHighContrast ? "bg-gray-700 text-slate-300" : "bg-white text-slate-600 border border-slate-200 hover:bg-lotteria-yellow-light"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
+
           </header>
 
-          {menuMessages.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 w-full z-10 relative bg-lotteria-cream rounded-2xl p-3">
-              <A2UIRenderer messages={menuMessages} />
+          {/* 카테고리 탭 */}
+          <div className="flex justify-center gap-2 mb-4">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.key}
+                onClick={() => setActiveCategory(cat.key)}
+                className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all active:scale-95 shadow-sm ${
+                  activeCategory === cat.key
+                    ? "bg-lotteria-red text-white ring-2 ring-offset-2 ring-lotteria-red"
+                    : "bg-lotteria-gray text-lotteria-brown hover:bg-gray-200"
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+                  {/* 메뉴 그리드 */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 px-2 pb-4">
+            {filteredMenus.length > 0 ? (
+              <A2UIRenderer messages={filteredMenus} />
+            ) : (
+              <p className="col-span-full text-center text-slate-400 py-8">
+                해당 카테고리에 메뉴가 없습니다.
+              </p>
+            )}
+          </div>
+
+          {/* 에이전트 응답 (채팅, 주문내역, 옵션선택 등) */}
+          {agentMessages.length > 0 && (
+            <div className="mt-4">
+              <A2UIRenderer messages={agentMessages} />
             </div>
           )}
 
-          {otherMessages.length > 0 && (
-            <div className="flex flex-col gap-6 w-full mt-6 mb-10 z-[60] items-center">
-              <A2UIRenderer messages={otherMessages} />
+          {/* 채팅 히스토리 */}
+          {chatHistory.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {chatHistory.map((msg, idx) => (
+                <div
+                  key={idx}
+                  className={`px-4 py-2 rounded-2xl max-w-[85%] text-sm ${
+                    msg.role === "user"
+                      ? "ml-auto bg-lotteria-red text-white"
+                      : "mr-auto bg-white text-slate-800 border border-slate-200"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              ))}
             </div>
           )}
+
         </main>
 
         {/* 하단 챗 인풋 */}

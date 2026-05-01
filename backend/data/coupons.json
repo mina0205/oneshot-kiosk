@@ -21,6 +21,6 @@
     "discountType": "amount",
     "discountValue": 1000,
     "minOrderPrice": 5000,
-    "expiresAt": "2026-04-30"
+    "expiresAt": "2026-06-30"
   }
 ]

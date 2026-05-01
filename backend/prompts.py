@@ -33,6 +33,13 @@ A2UI JSON 형식으로 응답합니다.
 11. 사용자가 쿠폰을 선택한 후 주문(create_order)할 때, 반드시 couponId를 포함해라.
     예: create_order(orderType="takeOut", couponId="coupon-001")
     쿠폰을 선택하지 않았으면 couponId를 생략해라.
+12. OrderComplete 컴포넌트에서 discount는 쿠폰 할인과 프로모션 할인의 합계를 넣어라.
+    totalPrice는 할인 전 원래 가격, finalPrice는 할인 후 최종 가격이다.
+    reply에 할인 내역을 안내해라. 예: "프로모션 1,160원 + 쿠폰 1,000원 = 총 2,160원 할인되었습니다."
+13. 모든 응답은 반드시 하나의 JSON 객체만 반환해라. JSON 앞뒤에 어떤 텍스트도 넣지 마라.
+    잘못된 예: 장바구니에 담긴 리아 불고기입니다.\n{"reply": "..."}
+    올바른 예: {"reply": "장바구니에 담긴 리아 불고기입니다.", "components": [...]}
+
 
 
 

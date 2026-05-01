@@ -21,8 +21,8 @@ from tool_executor import execute_tool
 from session import get_history, append_user, append_model, clear_session
 from parser import parse_and_validate
 
-GEMINI_MODEL = 'gemini-2.5-flash-lite'
-MAX_TOOL_ROUNDS = 10   
+GEMINI_MODEL = 'gemini-2.0-flash'
+MAX_TOOL_ROUNDS = 10
 
 logger = logging.getLogger(__name__)
 _client = genai.Client()
@@ -76,9 +76,9 @@ async def process_message(session_id: str, user_message: str) -> dict:
         logger.warning("[%s] finish_reason=%s", session_id, response.candidates[0].finish_reason)
         logger.warning("[%s] 응답길이=%d | 전문: %s", session_id, len(str(model_content)), str(model_content)[:1000])
 
-        # ── parts가 None인 경우 처리 ──
-        if not model_content.parts:
-            logger.warning("[%s] Gemini가 빈 응답을 반환했습니다.", session_id)
+        # None 안전 처리
+        if not model_content or not model_content.parts:
+            logger.warning(f"[{session_id}] Gemini returned empty parts")
             return {
                 "reply": "죄송합니다. 응답을 생성하지 못했습니다. 다시 말씀해주세요.",
                 "components": []

@@ -89,7 +89,7 @@ export const MenuCard = (menu: MenuCardProps) => {
 
       {/* 🚀 핵심 정보 복구: 칼로리 & 알레르기 (아주 작게 배치하여 공간 절약) */}
       <div className="flex flex-col items-center gap-1 mb-3 min-h-[36px]">
-        {menu.calories && (
+        {menu.calories!= null && (
           <span className="text-[10px] text-slate-500 flex items-center gap-0.5 font-medium">
             <Flame size={10} className="text-orange-400" /> {menu.calories} kcal
           </span>
