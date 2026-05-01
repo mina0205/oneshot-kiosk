@@ -43,7 +43,6 @@ export default function HomePage() {
   const sessionId = useSessionStore((s) => s.sessionId);
   const setSendMessage = useChatStore((s) => s.setSendMessage);
   const [agentMessages, setAgentMessages] = useState<A2UIMessage[]>([]);
-  const [chatHistory, setChatHistory] = useState<{ role: string; text: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -108,15 +107,10 @@ export default function HomePage() {
     useUIStore.getState().setOverrideMessages(null);
     setLoading(true);
     setError(null);
-    setChatHistory((prev) => [...prev, { role: "user", text: message }]);
 
-    try {
+        try {
       const response = await withTimeout(sendChat(sessionId, message), 15000);
       const { reply, components } = response;
-
-      if (reply) {
-        setChatHistory((prev) => [...prev, { role: "agent", text: reply }]);
-      }
 
       if (components && Array.isArray(components)) {
         const newMessages: A2UIMessage[] = components.map((comp: any, index: number) => ({
@@ -130,14 +124,14 @@ export default function HomePage() {
       }
     } catch (err: any) {
       if (err.message === "TIMEOUT") {
-        setChatHistory((prev) => [...prev, { role: "agent", text: "⚠️ AI 응답이 지연되고 있습니다. 다시 질문해주세요." }]);
+        setError("⚠️ AI 응답이 지연되고 있습니다. 다시 질문해주세요.");
       } else {
-        setError(err.message);
-        setChatHistory((prev) => [...prev, { role: "agent", text: "⚠️ 서버 연결이 끊어졌습니다." }]);
+        setError("⚠️ 서버 연결이 끊어졌습니다.");
       }
     } finally {
       setLoading(false);
     }
+    
   };
 
   useEffect(() => {
@@ -220,58 +214,53 @@ export default function HomePage() {
 
           </header>
 
-          {/* 카테고리 탭 */}
-          <div className="flex justify-center gap-2 mb-4">
-            {CATEGORIES.map((cat) => (
+        {/* 타임아웃이나 서버 에러 시 빨간 배너 */}
+          {error && (
+            <div className="mx-2 mb-3 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold text-center border border-red-200">
+              {error}
+            </div>
+          )}
+        {/* 에이전트 응답 (채팅, 주문내역, 옵션선택 등) */}
+          {agentMessages.length > 0 ? (
+        /* 에이전트 응답이 있으면 → 에이전트 결과만 표시 */
+        <div className="mt-4">
               <button
-                key={cat.key}
-                onClick={() => setActiveCategory(cat.key)}
-                className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all active:scale-95 shadow-sm ${
-                  activeCategory === cat.key
-                    ? "bg-lotteria-red text-white ring-2 ring-offset-2 ring-lotteria-red"
-                    : "bg-lotteria-gray text-lotteria-brown hover:bg-gray-200"
-                }`}
+                onClick={() => setAgentMessages([])}
+                className="mb-3 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all"
               >
-                {cat.label}
+                ← 메뉴로 돌아가기
               </button>
-            ))}
-          </div>
-
-                  {/* 메뉴 그리드 */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 px-2 pb-4">
-            {filteredMenus.length > 0 ? (
-              <A2UIRenderer messages={filteredMenus} />
-            ) : (
-              <p className="col-span-full text-center text-slate-400 py-8">
-                해당 카테고리에 메뉴가 없습니다.
-              </p>
-            )}
-          </div>
-
-          {/* 에이전트 응답 (채팅, 주문내역, 옵션선택 등) */}
-          {agentMessages.length > 0 && (
-            <div className="mt-4">
               <A2UIRenderer messages={agentMessages} />
             </div>
-          )}
-
-          {/* 채팅 히스토리 */}
-          {chatHistory.length > 0 && (
-            <div className="mt-4 space-y-2">
-              {chatHistory.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`px-4 py-2 rounded-2xl max-w-[85%] text-sm ${
-                    msg.role === "user"
-                      ? "ml-auto bg-lotteria-red text-white"
-                      : "mr-auto bg-white text-slate-800 border border-slate-200"
-                  }`}
-                >
-                  {msg.text}
-                </div>
-              ))}
-            </div>
-          )}
+          ) : (
+            /* 에이전트 응답이 없으면 → 카테고리 탭 + 메뉴 그리드 */
+            <>
+              <div className="flex justify-center gap-2 mb-4">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.key}
+                    onClick={() => setActiveCategory(cat.key)}
+                    className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all active:scale-95 shadow-sm ${
+                      activeCategory === cat.key
+                        ? "bg-lotteria-red text-white ring-2 ring-offset-2 ring-lotteria-red"
+                        : "bg-lotteria-gray text-lotteria-brown hover:bg-gray-200"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 px-2 pb-4">
+                {filteredMenus.length > 0 ? (
+                  <A2UIRenderer messages={filteredMenus} />
+                ) : (
+                  <p className="col-span-full text-center text-slate-400 py-8">
+                    해당 카테고리에 메뉴가 없습니다.
+                  </p>
+                )}
+              </div>
+            </>
+    )}
 
         </main>
 

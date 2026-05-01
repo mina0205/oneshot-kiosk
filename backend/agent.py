@@ -21,7 +21,7 @@ from tool_executor import execute_tool
 from session import get_history, append_user, append_model, clear_session
 from parser import parse_and_validate
 
-GEMINI_MODEL = 'gemini-2.0-flash'
+GEMINI_MODEL = 'gemini-2.0-flash-lite'
 MAX_TOOL_ROUNDS = 10
 
 logger = logging.getLogger(__name__)
