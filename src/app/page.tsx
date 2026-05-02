@@ -175,8 +175,7 @@ export default function HomePage() {
         </div>
 
         {/* 메인 스크롤 영역 */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-60 scroll-smooth">
-          <header className="mb-8 text-center">
+         <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 scroll-smooth">          <header className="mb-8 text-center">
             {/* 롯데리아 스타일 로고 */}
             <div className="inline-flex items-center gap-2 mb-4 mt-2">
               <div className="w-10 h-10 bg-lotteria-red rounded-full flex items-center justify-center">
@@ -265,7 +264,7 @@ export default function HomePage() {
         </main>
 
         {/* 하단 챗 인풋 */}
-        <div className="absolute bottom-0 left-0 right-0 z-40">
+        <div className="sticky bottom-0 left-0 right-0 z-40 bg-lotteria-cream">
           <ChatInput onSend={handleSend} loading={loading} />
         </div>
       </div>
