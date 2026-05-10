@@ -1,9 +1,13 @@
+// [Cell 1]: src/components/a2ui/CartView.tsx
+// 백엔드(BE) 연동 및 주문 완료 화면 전환 로직이 포함된 최종 장바구니 컴포넌트입니다.
+
 "use client";
 
-import React from 'react';
-import { Minus, Plus, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Minus, Plus, Trash2, Loader2 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useSessionStore } from '@/store/sessionStore';
+import { useUIStore } from '@/store/uiStore'; // 🚀 UI 상태 관리를 위해 추가
 
 interface CartProps {
   items?: any[];
@@ -15,33 +19,36 @@ interface CartProps {
 export const CartView = (props: CartProps) => {
   const store = useCartStore();
   const sessionId = useSessionStore((s) => s.sessionId);
+  const setOverrideMessages = useUIStore((s) => s.setOverrideMessages); // 🚀 주문 완료 시 화면 덮어쓰기 함수
+  
+  const [isOrdering, setIsOrdering] = useState(false); // 주문 중 로딩 상태
 
   const hasBEData = props.items && props.items.length > 0;
 
+  // 표시할 데이터 결정 (BE 데이터가 있으면 최우선, 없으면 FE Zustand 스토어 데이터)
   const items = hasBEData ? props.items! : store.items;
   const totalPrice = hasBEData ? props.totalPrice! : store.totalPrice;
   const itemCount = hasBEData ? props.itemCount! : store.itemCount;
 
-  // BE 장바구니 항목 삭제
+  // [기능] BE 장바구니 항목 삭제
   const handleBERemove = async (cartItemId: string) => {
     try {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       await fetch(`${API_BASE_URL}/cart/${sessionId}/items/${cartItemId}`, {
         method: "DELETE",
       });
-      // 삭제 후 props에서 해당 항목 제거 (화면 즉시 반영)
+      // UI 즉시 반영을 위한 로직
       if (props.items) {
         const idx = props.items.findIndex((i: any) => i.cartItemId === cartItemId);
         if (idx !== -1) props.items.splice(idx, 1);
       }
-      // 강제 리렌더를 위해 Zustand도 트리거
-      store.clearCart();
+      store.clearCart(); // 리렌더링 트리거
     } catch (err) {
       console.warn("BE 장바구니 삭제 실패:", err);
     }
   };
 
-  // BE 장바구니 수량 변경
+  // [기능] BE 장바구니 수량 변경
   const handleBEUpdateQuantity = async (cartItemId: string, currentQty: number, delta: number) => {
     const newQty = currentQty + delta;
     if (newQty <= 0) {
@@ -55,7 +62,6 @@ export const CartView = (props: CartProps) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ quantity: newQty }),
       });
-      // 화면 즉시 반영
       if (props.items) {
         const item = props.items.find((i: any) => i.cartItemId === cartItemId);
         if (item) {
@@ -63,9 +69,62 @@ export const CartView = (props: CartProps) => {
           item.subtotal = item.unitPrice * newQty;
         }
       }
-      store.clearCart(); // 리렌더 트리거
+      store.clearCart();
     } catch (err) {
       console.warn("BE 수량 변경 실패:", err);
+    }
+  };
+
+  // 🚀 [기능] 주문 확정 및 화면 전환 (최종 완성본)
+  const handleOrder = async () => {
+    if (items.length === 0 || isOrdering) return;
+    setIsOrdering(true);
+
+    let orderResult: any = null; // 백엔드에서 받은 진짜 데이터를 담을 바구니
+
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      
+      // 1. 백엔드에 주문 정보 전송
+      const response = await fetch(`${API_BASE_URL}/orders/${sessionId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          items: items, 
+          totalPrice: totalPrice 
+        }),
+      });
+
+      if (response.ok) {
+        // 🚀 백엔드(orders.py)가 내려주는 진짜 데이터(최종 가격, 주문번호 등)를 저장!
+        orderResult = await response.json(); 
+        console.log("BE 주문 성공:", orderResult);
+      } else {
+        console.warn("BE 주문 응답 실패 (폴백 UI 실행)");
+      }
+    } catch (error) {
+      console.error("주문 통신 에러 (서버 미연결):", error);
+    } finally {
+      // 2. 장바구니 깔끔하게 비우기
+      store.clearCart();
+
+      // 3. 주문 완료 화면(OrderComplete)으로 화면 덮어쓰기
+      if (typeof setOverrideMessages === 'function') {
+        setOverrideMessages([
+          {
+            id: `order-success-${Date.now()}`,
+            type: 'OrderComplete', 
+            // 🚀 핵심: 백엔드 데이터가 있으면 그걸 통째로 넘기고, 없으면 에러 안 나게 임시 가격(totalPrice)을 넣어줍니다!
+            props: orderResult ? orderResult : { 
+              orderNumber: Math.floor(Math.random() * 900) + 100,
+              finalPrice: totalPrice, 
+              totalPrice: totalPrice
+            }
+          }
+        ]);
+      }
+      
+      setIsOrdering(false);
     }
   };
 
@@ -76,7 +135,7 @@ export const CartView = (props: CartProps) => {
         <span className="text-sm text-orange-600 font-bold">총 {itemCount}개 담김</span>
       </div>
       
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto pr-1">
         {items.length === 0 ? (
           <div className="h-full flex items-center justify-center text-slate-400 font-medium py-12">
             아직 담은 메뉴가 없습니다.
@@ -104,10 +163,13 @@ export const CartView = (props: CartProps) => {
                       <span>- {item.selectedDrink || '음료 미선택'} {item.drinkSize === 'L' ? '(L)' : '(R)'}</span>
                     </div>
                   )}
-                  
-                  {item.toppings && item.toppings.length > 0 && (
-                    <div className="text-xs text-orange-500 mt-1">
-                      + {item.toppings.join(', ')}
+                                    {item.toppings && item.toppings.length > 0 && (
+                    <div className="text-xs text-purple-500 mt-1 flex flex-wrap gap-1">
+                      {item.toppings.map((t: string) => (
+                        <span key={t} className="bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
+                          + {t}
+                        </span>
+                      ))}
                     </div>
                   )}
 
@@ -117,7 +179,6 @@ export const CartView = (props: CartProps) => {
                 </div>
                 
                 <div className="flex flex-col items-end gap-3">
-                  {/* 삭제 버튼 — BE, FE 모두 표시 */}
                   <button 
                     onClick={() => hasBEData 
                       ? handleBERemove(item.cartItemId) 
@@ -128,7 +189,6 @@ export const CartView = (props: CartProps) => {
                     <Trash2 size={16} />
                   </button>
                   
-                  {/* 수량 조절 버튼 — BE, FE 모두 표시 */}
                   <div className="flex items-center gap-3 bg-slate-100 rounded-full px-2 py-1 shadow-inner">
                     <button 
                       onClick={() => hasBEData
@@ -168,10 +228,16 @@ export const CartView = (props: CartProps) => {
         </div>
         
         <button 
-          disabled={items.length === 0}
-          className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors shadow-md"
+          onClick={handleOrder}
+          disabled={items.length === 0 || isOrdering}
+          className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors shadow-md flex justify-center items-center"
         >
-          주문하기
+          {isOrdering ? (
+            <div className="flex items-center gap-2">
+              <Loader2 size={20} className="animate-spin" />
+              <span>처리 중...</span>
+            </div>
+          ) : "주문하기"}
         </button>
       </div>
     </div>

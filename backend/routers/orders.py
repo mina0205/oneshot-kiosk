@@ -41,10 +41,15 @@ def create_order(session_id: str, req: OrderRequest):
             if p["isActive"] and item["menuId"] in p.get("applicableMenuIds", [])
         ]
         for promo in menu_promos:
+            # 세트 한정 프로모션인데 단품이면 건너뛰기
+            if promo.get("setOnly", False) and not item.get("isSet", False):
+                continue
             if promo["discountType"] == "rate":
                 promo_discount += int(item["unitPrice"] * promo["discountValue"]) * item["quantity"]
             elif promo["discountType"] == "amount":
                 promo_discount += promo["discountValue"] * item["quantity"]
+
+
 
     total_discount = coupon_discount + promo_discount
     final_price = max(0, cart_response["totalPrice"] - total_discount)

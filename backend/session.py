@@ -9,11 +9,14 @@ _histories: dict[str, list[types.Content]] = {}
 def get_history(session_id: str) -> list[types.Content]:
     return _histories.setdefault(session_id, [])
 
-
+# 히스토리 먼저 호출
 def append_user(session_id: str, parts: list) -> None:
+    if session_id not in _histories:
+        _histories[session_id] = []
     _histories[session_id].append(
         types.Content(role="user", parts=parts)
     )
+
 
 
 def append_model(session_id: str, content: types.Content) -> None:

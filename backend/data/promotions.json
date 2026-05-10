@@ -7,8 +7,9 @@
     "discountValue": 0.2,
     "applicableMenuIds": ["burger-001", "burger-008"],
     "startDate": "2026-04-01",
-    "endDate": "2026-04-30",
-    "isActive": true
+    "endDate": "2026-06-30",
+    "isActive": true,
+    "setOnly": true
   },
   {
     "promotionId": "promo-002",
@@ -18,8 +19,9 @@
     "discountValue": 1000,
     "applicableMenuIds": ["burger-005"],
     "startDate": "2026-04-01",
-    "endDate": "2026-05-31",
-    "isActive": true
+    "endDate": "2026-06-30",
+    "isActive": true,
+    "setOnly": false
   },
   {
     "promotionId": "promo-003",
@@ -29,7 +31,8 @@
     "discountValue": 500,
     "applicableMenuIds": ["chicken-001", "chicken-002"],
     "startDate": "2026-03-15",
-    "endDate": "2026-04-15",
-    "isActive": true
+    "endDate": "2026-06-15",
+    "isActive": true,
+    "setOnly": true
   }
 ]

@@ -1,29 +1,56 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { ZoomIn, ZoomOut, Contrast, RotateCcw } from "lucide-react";
 import { A2UIRenderer, A2UIMessage } from "@/components/a2ui/A2UIRenderer";
 import { ChatInput } from "@/components/ui/ChatInput";
 import { menuData } from "@/data/menuData";
 import { fetchMenus, sendChat } from "@/lib/api";
-import { v4 as uuidv4 } from "uuid";
 import { useSessionStore } from "@/store/sessionStore";
 import { useChatStore } from "@/store/chatStore";
+import { useUIStore } from "@/store/uiStore";
 
+// ── 타입 정의 ──────────────────────────────────────────────────────────────
+interface MenuApiItem {
+  category?: string;
+  [key: string]: unknown;
+}
 
-// 더미 데이터 (fallback용)
-import { menuCardMessages } from "@/dummy/menuCardMessages";
-import { cartMessages } from "@/dummy/cartMessages";
-import { optionSelectorMessages } from "@/dummy/optionSelectorMessages";
-import { paymentMessages } from "@/dummy/paymentMessages";
-import { allergyMessages } from "@/dummy/allergyMessages";
-import { orderCompleteMessages } from "@/dummy/orderCompleteMessages";
-import { comboMessages } from "@/dummy/comboMessages";
-import { orderHistoryMessages } from "@/dummy/orderHistoryMessages";
-import { comparisonMessages } from "@/dummy/comparisonMessages";
-import { promotionMessages } from "@/dummy/promotionMessages";
-import { couponMessages } from "@/dummy/couponMessages";
-import { customBuilderMessages } from "@/dummy/customBuilderMessages";
+interface AgentComponent {
+  type: string;
+  [key: string]: unknown;
+}
 
+// ── 유틸 ───────────────────────────────────────────────────────────────────
+
+// timeout 55초 (Gemini 멀티-툴 라운드 처리 시간 확보)
+const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("TIMEOUT")), ms)
+    ),
+  ]);
+};
+
+const fetchWithRetry = async <T,>(
+  fn: () => Promise<T>,
+  retries = 3,
+  delay = 1000
+): Promise<T> => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i === retries - 1) throw err;
+      console.warn(`[BE 연결 지연] ${i + 1}번째 재시도 중...`);
+      await new Promise((res) => setTimeout(res, delay));
+    }
+  }
+  throw new Error("모든 재시도 실패");
+};
+
+// ── 상수 ───────────────────────────────────────────────────────────────────
 
 const localMenuMessages: A2UIMessage[] = menuData.map((menu, index) => ({
   id: `msg-menu-${index}`,
@@ -31,213 +58,245 @@ const localMenuMessages: A2UIMessage[] = menuData.map((menu, index) => ({
   props: menu,
 }));
 
-export default function HomePage() {
-  // 모드 전환: "agent" (에이전트 연동) / "dummy" (더미 시나리오)
-  const [mode, setMode] = useState<"agent" | "dummy">("agent");
-  const [scenario, setScenario] = useState<string>("all");
+const CATEGORIES = [
+  { key: "burger", label: "🍔 버거" },
+  { key: "side",   label: "🍗 사이드" },
+  { key: "drink",  label: "🥤 음료" },
+];
 
-  // 에이전트 관련 상태
+// ── 컴포넌트 ───────────────────────────────────────────────────────────────
+
+export default function HomePage() {
   const sessionId = useSessionStore((s) => s.sessionId);
   const setSendMessage = useChatStore((s) => s.setSendMessage);
+
   const [agentMessages, setAgentMessages] = useState<A2UIMessage[]>([]);
-  const [chatHistory, setChatHistory] = useState<{ role: string; text: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 초기 메뉴 로딩 (BE API)
-  const [apiMenuMessages, setApiMenuMessages] = useState<A2UIMessage[] | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [isHighContrast, setIsHighContrast] = useState(false);
+  const [fontSize, setFontSize] = useState<"normal" | "large">("normal");
 
+  const isHomeRequested = useUIStore((s) => s.isHomeRequested);
+  const resetHomeTrigger = useUIStore((s) => s.resetHomeTrigger);
+
+  const [apiMenuMessages, setApiMenuMessages] = useState<A2UIMessage[] | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>("burger");
+
+  // 메뉴 필터링
+  const filteredMenus = useMemo(() => {
+    const all = apiMenuMessages ?? localMenuMessages;
+    return all
+      .filter((msg) => msg.type === "MenuCard")
+      .filter((msg) => {
+        const cat = (msg.props as MenuApiItem)?.category;
+        if (activeCategory === "side") {
+          return cat === "side" || cat === "chicken" || cat === "iceshot";
+        }
+        return cat === activeCategory;
+      });
+  }, [apiMenuMessages, activeCategory]);
+
+  // 최초 마운트: 메뉴 API 로드
   useEffect(() => {
-    fetchMenus()
-      .then((menus) => {
-        const messages: A2UIMessage[] = menus.map((menu: any, index: number) => ({
+    fetchWithRetry(() => fetchMenus(), 3, 1000)
+      .then((menus: MenuApiItem[]) => {
+        const messages: A2UIMessage[] = menus.map((menu, index) => ({
           id: `api-menu-${index}`,
           type: "MenuCard",
           props: menu,
         }));
         setApiMenuMessages(messages);
-        setApiError(null);
       })
-      .catch((err) => {
-        console.warn("BE API 연결 실패:", err.message);
-        setApiError(err.message);
-        setApiMenuMessages(null);
+      .catch(() => {
+        // 서버 연결 실패 시 localMenuMessages 사용 (null 유지)
       });
   }, []);
 
-  const allMenuMessages = apiMenuMessages ?? localMenuMessages;
-
-  // 에이전트 채팅 전송
-  const handleSend = async (message: string) => {
-  setLoading(true);
-  setError(null);
-
-  setChatHistory((prev) => [...prev, { role: "user", text: message }]);
-
-  try {
-    const response = await sendChat(sessionId, message);
-
-    // BE 응답: { reply: string, components: [...] | null }
-    const { reply, components } = response;
-
-    // 에이전트 텍스트 응답을 히스토리에 추가
-    if (reply) {
-      setChatHistory((prev) => [...prev, { role: "agent", text: reply }]);
+  // 홈 복귀 신호 처리
+  useEffect(() => {
+    if (isHomeRequested) {
+      setAgentMessages([]);
+      useUIStore.getState().setOverrideMessages(null);
+      resetHomeTrigger();
     }
+  }, [isHomeRequested, resetHomeTrigger]);
 
-    // components가 있으면 A2UI 메시지로 변환
-    if (components && Array.isArray(components)) {
-      const newMessages: A2UIMessage[] = components.map((comp: any, index: number) => ({
-        id: `agent-${Date.now()}-${index}`,
-        type: comp.type,
-        props: comp,
-      }));
-      setAgentMessages(newMessages);
-    } else {
-      // components가 null이면 기존 메뉴 유지
-      setAgentMessages([...allMenuMessages, ...cartMessages]);
+  // handleSend: sessionId가 바뀔 때만 재생성
+  const handleSend = useCallback(async (msg: string) => {
+    useUIStore.getState().setOverrideMessages(null);
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await withTimeout(sendChat(sessionId, msg), 55000);
+      const { components } = response;
+
+      if (components && Array.isArray(components)) {
+        const newMessages: A2UIMessage[] = (components as AgentComponent[]).map(
+          (comp, index) => ({
+            id: `agent-${Date.now()}-${index}`,
+            type: comp.type,
+            props: comp,
+          })
+        );
+        setAgentMessages(newMessages);
+      } else {
+        setAgentMessages([]);
+      }
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : "unknown";
+      if (errMsg === "TIMEOUT") {
+        setError("⚠️ AI 응답이 지연되고 있습니다. 다시 질문해주세요.");
+      } else {
+        setError("⚠️ 서버 연결이 끊어졌습니다.");
+      }
+    } finally {
+      setLoading(false);
     }
-  } catch (err: any) {
-    console.error("에이전트 호출 실패:", err);
-    setError(err.message || "에이전트 연결에 실패했습니다");
-  } finally {
-    setLoading(false);
-  }
-};
+  }, [sessionId]);
 
-  // handleSend를 전역 store에 등록
+  // handleSend store 등록
   useEffect(() => {
     setSendMessage(handleSend);
-  }, [sessionId, allMenuMessages]);
-
-  // 더미 시나리오 맵
-  const SCENARIOS: Record<string, { label: string; messages: A2UIMessage[] }> = {
-    all: { label: "전체 메뉴", messages: [...allMenuMessages, ...cartMessages] },
-    s02: { label: "S-02 칼로리 추천", messages: [...menuCardMessages, ...cartMessages] },
-    s03: { label: "S-03 세트 옵션", messages: [...optionSelectorMessages, ...cartMessages] },
-    s04: { label: "S-04 알레르기 필터", messages: [...allergyMessages, ...cartMessages] },
-    s05: { label: "S-05 예산 추천", messages: [...comboMessages, ...cartMessages] },
-    s06: { label: "S-06 리오더", messages: [...orderHistoryMessages, ...cartMessages] },
-    s07: { label: "S-07 메뉴 비교", messages: [...comparisonMessages, ...cartMessages] },
-    s09: { label: "S-09 프로모션", messages: [...promotionMessages, ...couponMessages, ...paymentMessages] },
-    s10: { label: "S-10 커스텀 버거", messages: [...customBuilderMessages, ...cartMessages] },
-    done: { label: "주문 완료", messages: orderCompleteMessages },
-  };
-
-  // 현재 화면에 표시할 메시지
-  const displayMessages =
-    mode === "agent"
-      ? agentMessages.length > 0
-        ? agentMessages
-        : [...allMenuMessages, ...cartMessages] // 에이전트 응답 전에는 전체 메뉴
-      : SCENARIOS[scenario].messages;
+  }, [handleSend, setSendMessage]);
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
-      <main className="flex-1 overflow-y-auto p-8">
-        {/* 헤더 */}
-        <header className="mb-6 text-center">
-          <h1 className="text-3xl font-black text-slate-900">OneShot AI</h1>
-
-          {/* 모드 전환 버튼 */}
-          <div className="flex justify-center gap-2 mt-3">
+    <div
+      className={`min-h-screen bg-lotteria-brown flex items-center justify-center p-2 sm:p-6 transition-colors duration-300 ${
+        fontSize === "large" ? "text-lg" : "text-base"
+      }`}
+    >
+      {/* 키오스크 프레임 */}
+      <div
+        className={`w-full max-w-[600px] h-[95vh] max-h-[1200px] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative border-8 transition-colors duration-300 ${
+          isHighContrast
+            ? "bg-black text-white border-yellow-400"
+            : "bg-lotteria-cream text-slate-900 border-lotteria-red"
+        }`}
+      >
+        {/* 헤더 바 */}
+        <div className="bg-lotteria-red text-white px-6 py-3 flex justify-between items-center z-50 shadow-md">
+          <div className="flex gap-4">
             <button
-              onClick={() => setMode("agent")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                mode === "agent"
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-slate-600 border border-slate-200"
-              }`}
+              onClick={() => setFontSize((prev) => (prev === "normal" ? "large" : "normal"))}
+              className="flex items-center gap-1.5 hover:text-lotteria-yellow transition-colors active:scale-95"
             >
-              에이전트 모드
+              {fontSize === "normal" ? <ZoomIn size={20} /> : <ZoomOut size={20} />}
+              <span className="font-bold">
+                {fontSize === "normal" ? "글자크게" : "기본크기"}
+              </span>
             </button>
             <button
-              onClick={() => setMode("dummy")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                mode === "dummy"
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-slate-600 border border-slate-200"
+              onClick={() => setIsHighContrast(!isHighContrast)}
+              className={`flex items-center gap-1.5 hover:text-lotteria-yellow transition-colors active:scale-95 ${
+                isHighContrast ? "text-lotteria-yellow" : ""
               }`}
             >
-              더미 시나리오
+              <Contrast size={20} />
+              <span className="font-bold">고대비</span>
             </button>
           </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-1.5 bg-lotteria-yellow text-lotteria-brown px-3 py-1.5 rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all"
+          >
+            <RotateCcw size={16} />
+            처음으로
+          </button>
+        </div>
 
-          {/* 상태 표시 */}
-          {mode === "agent" && (
-            <div className="mt-2">
-              {apiError ? (
-                <p className="text-xs text-orange-500">
-                  ⚠️ BE 서버 미연결 — 로컬 더미 데이터 사용 중
-                </p>
-              ) : apiMenuMessages ? (
-                <p className="text-xs text-green-500">
-                  ✅ BE API 연동 성공 — 메뉴 {apiMenuMessages.length}개 로드
-                </p>
-              ) : null}
-              {error && (
-                <p className="text-xs text-red-500 mt-1">❌ {error}</p>
-              )}
+        {/* 메인 스크롤 영역 */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 scroll-smooth">
+          <header className="mb-8 text-center">
+            {/* 롯데리아 스타일 로고 */}
+            <div className="inline-flex items-center gap-2 mb-4 mt-2">
+              <div className="w-10 h-10 bg-lotteria-red rounded-full flex items-center justify-center">
+                <span className="text-white font-black text-lg">L</span>
+              </div>
+              <h1 className="text-3xl font-black text-lotteria-red">LOTTERIA</h1>
+            </div>
+            <p className="text-sm text-slate-500 -mt-2 mb-4">OneShot Kiosk</p>
+
+            {/* 바로가기 버튼 */}
+            <div className="flex justify-center gap-2 mb-4">
+              <button
+                onClick={() => handleSend("현재 진행 중인 프로모션 보여줘")}
+                disabled={loading}
+                className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all shadow-sm"
+              >
+                🏷️ 프로모션
+              </button>
+              <button
+                onClick={() => handleSend("쿠폰 보여줘")}
+                disabled={loading}
+                className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all shadow-sm"
+              >
+                🎟️ 쿠폰
+              </button>
+              <button
+                onClick={() => handleSend("장바구니 보여줘")}
+                disabled={loading}
+                className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-red text-white rounded-full text-sm font-bold hover:bg-lotteria-red-dark active:scale-95 transition-all shadow-sm"
+              >
+                🛒 장바구니
+              </button>
+            </div>
+          </header>
+
+          {/* 에러 배너 */}
+          {error && (
+            <div className="mx-2 mb-3 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold text-center border border-red-200">
+              {error}
             </div>
           )}
-        </header>
 
-        {/* 더미 모드: 시나리오 버튼 */}
-        {mode === "dummy" && (
-          <div className="flex flex-wrap gap-2 justify-center mb-6">
-            {Object.entries(SCENARIOS).map(([key, { label }]) => (
+          {/* 에이전트 응답 or 메뉴 그리드 */}
+          {agentMessages.length > 0 ? (
+            <div className="mt-4">
               <button
-                key={key}
-                onClick={() => setScenario(key)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  scenario === key
-                    ? "bg-slate-900 text-white"
-                    : "bg-white text-slate-600 border border-slate-200 hover:border-slate-300"
-                }`}
+                onClick={() => setAgentMessages([])}
+                className="mb-3 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all"
               >
-                {label}
+                ← 메뉴로 돌아가기
               </button>
-            ))}
-          </div>
-        )}
-
-        {/* 에이전트 모드: 대화 히스토리 */}
-        {mode === "agent" && chatHistory.length > 0 && (
-          <div className="max-w-3xl mx-auto mb-6 space-y-2">
-            {chatHistory.map((chat, i) => (
-              <div
-                key={i}
-                className={`px-4 py-2 rounded-2xl text-sm w-fit max-w-[80%] ${
-                  chat.role === "user"
-                    ? "ml-auto bg-slate-900 text-white"
-                    : "bg-white text-slate-600 border border-slate-100"
-                }`}
-              >
-                {chat.text}
+              <A2UIRenderer messages={agentMessages} />
+            </div>
+          ) : (
+            <>
+              <div className="flex justify-center gap-2 mb-4">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.key}
+                    onClick={() => setActiveCategory(cat.key)}
+                    className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all active:scale-95 shadow-sm ${
+                      activeCategory === cat.key
+                        ? "bg-lotteria-red text-white ring-2 ring-offset-2 ring-lotteria-red"
+                        : "bg-lotteria-gray text-lotteria-brown hover:bg-gray-200"
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
               </div>
-            ))}
-            {loading && (
-              <div className="px-4 py-2 rounded-2xl text-sm bg-white text-slate-400 border border-slate-100 w-fit">
-                응답 생성 중...
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 px-2 pb-4">
+                {filteredMenus.length > 0 ? (
+                  <A2UIRenderer messages={filteredMenus} />
+                ) : (
+                  <p className="col-span-full text-center text-slate-400 py-8">
+                    해당 카테고리에 메뉴가 없습니다.
+                  </p>
+                )}
               </div>
-            )}
-          </div>
-        )}
+            </>
+          )}
+        </main>
 
-        {/* 컴포넌트 렌더링 */}
-        <div className="pb-24">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl mx-auto items-start">
-            <A2UIRenderer messages={displayMessages} />
-          </div>
+        {/* 하단 챗 인풋 */}
+        <div className="sticky bottom-0 left-0 right-0 z-40 bg-lotteria-cream">
+          <ChatInput onSend={handleSend} loading={loading} />
         </div>
-      </main>
-
-      {/* 채팅 입력 — 에이전트 모드에서만 활성화 */}
-      <ChatInput
-        onSend={handleSend}
-        loading={loading}
-      />
+      </div>
     </div>
   );
 }
