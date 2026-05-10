@@ -11,6 +11,7 @@ FastAPI 라우터에서 process_message() 만 호출하면 됩니다.
 """
 
 import logging
+import asyncio
 
 from google import genai
 from google.genai import types
@@ -30,10 +31,24 @@ _client = genai.Client()
 _GENAI_CONFIG = types.GenerateContentConfig(
     system_instruction=SYSTEM_PROMPT,
     tools=TOOLS,
-    temperature=0.2,   
-    max_output_tokens=4096,         
+    temperature=0.2,
+    max_output_tokens=4096,
     response_mime_type="text/plain",
 )
+
+# Python 불리언 → JSON 불리언 변환 테이블 (미리 빌드)
+_BOOL_REPLACEMENTS = [
+    (": False", ": false"), (": True", ": true"),
+    (":False", ":false"), (":True", ":true"),
+    (", False", ", false"), (", True", ", true"),
+    ("[False", "[false"), ("[True", "[true"),
+]
+
+
+def _fix_booleans(text: str) -> str:
+    for old, new in _BOOL_REPLACEMENTS:
+        text = text.replace(old, new)
+    return text
 
 
 async def process_message(session_id: str, user_message: str) -> dict:
@@ -45,7 +60,8 @@ async def process_message(session_id: str, user_message: str) -> dict:
         logger.debug("[%s] Gemini 호출 round=%d", session_id, round_num)
 
         try:
-            response = _client.models.generate_content(
+            # ★ 동기 generate_content → 비동기 generate_content_async 로 변경
+            response = await _client.aio.models.generate_content(
                 model=GEMINI_MODEL,
                 contents=get_history(session_id),
                 config=_GENAI_CONFIG,
@@ -53,7 +69,7 @@ async def process_message(session_id: str, user_message: str) -> dict:
         except Exception as e:
             error_str = str(e)
             if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                logger.warning("[%s] Gemini API 쿼터 초과. 잠시 후 다시 시도해주세요.", session_id)
+                logger.warning("[%s] Gemini API 쿼터 초과.", session_id)
                 return {
                     "reply": "잠시 요청이 많아 처리가 지연되고 있습니다. 10초 후에 다시 시도해주세요.",
                     "components": [],
@@ -71,19 +87,18 @@ async def process_message(session_id: str, user_message: str) -> dict:
                     "components": [],
                 }
 
-
         model_content = response.candidates[0].content
-        logger.warning("[%s] finish_reason=%s", session_id, response.candidates[0].finish_reason)
-        logger.warning("[%s] 응답길이=%d | 전문: %s", session_id, len(str(model_content)), str(model_content)[:1000])
+        # ★ logger.warning → logger.debug 로 강등 (매 round 전체 응답 str 변환 제거)
+        logger.debug("[%s] finish_reason=%s", session_id, response.candidates[0].finish_reason)
 
         # None 안전 처리
         if not model_content or not model_content.parts:
-            logger.warning(f"[{session_id}] Gemini returned empty parts")
+            logger.warning("[%s] Gemini returned empty parts", session_id)
             return {
                 "reply": "죄송합니다. 응답을 생성하지 못했습니다. 다시 말씀해주세요.",
                 "components": []
             }
-        
+
         # 모델 응답을 히스토리에 추가
         append_model(session_id, model_content)
 
@@ -98,12 +113,7 @@ async def process_message(session_id: str, user_message: str) -> dict:
             )
             logger.debug("[%s] 최종 응답 수신 (len=%d)", session_id, len(final_text))
 
-            # ── Python 불리언 → JSON 불리언 ──
-            final_text = (final_text
-                .replace(": False", ": false").replace(": True", ": true")
-                .replace(":False", ":false").replace(":True", ":true")
-                .replace(", False", ", false").replace(", True", ", true")
-                .replace("[False", "[false").replace("[True", "[true"))
+            final_text = _fix_booleans(final_text)
 
             # ── 잘린 JSON 복구 ──
             open_braces = final_text.count("{") - final_text.count("}")
@@ -113,7 +123,6 @@ async def process_message(session_id: str, user_message: str) -> dict:
                 logger.warning("[%s] JSON 잘림 감지 (brace=%d, bracket=%d). 복구 시도.",
                                session_id, open_braces, open_brackets)
 
-                # 마지막 완전한 MenuCard 객체까지만 유지
                 last_complete = final_text.rfind('"soldOut": false}')
                 if last_complete == -1:
                     last_complete = final_text.rfind('"soldOut": true}')
@@ -122,36 +131,29 @@ async def process_message(session_id: str, user_message: str) -> dict:
                     cut_pos = last_complete + len('"soldOut": false}')
                     final_text = final_text[:cut_pos] + "]}"
                 else:
-                    # MenuCard가 아닌 경우 닫는 괄호만 추가
                     final_text += "]" * open_brackets + "}" * open_braces
 
             result = parse_and_validate(final_text)
             _post_process(session_id, result)
             return result
 
-
-        # Tool 실행
-        tool_result_parts = []
-        for part in tool_call_parts:
+        # ★ 병렬 Tool 실행: 여러 tool call을 asyncio.gather로 동시에 실행
+        async def _run_tool(part):
             fc = part.function_call
             tool_args = dict(fc.args) if fc.args else {}
-
-            # session_id 강제 주입 (Gemini가 임의 값을 넣는 것 방지)
             tool_args["session_id"] = session_id
-
             logger.info("[%s] Tool 실행: %s(%s)", session_id, fc.name, tool_args)
-            tool_result = await execute_tool(fc.name, tool_args)
-            logger.debug("[%s] Tool 결과: %s", session_id, str(tool_result)[:300])
-
-            tool_result_parts.append(
-                types.Part.from_function_response(
-                    name=fc.name,
-                    response={"result": tool_result},
-                )
+            result = await execute_tool(fc.name, tool_args)
+            logger.debug("[%s] Tool 결과: %s", session_id, str(result)[:300])
+            return types.Part.from_function_response(
+                name=fc.name,
+                response={"result": result},
             )
 
+        tool_result_parts = await asyncio.gather(*[_run_tool(p) for p in tool_call_parts])
+
         # Tool 결과를 히스토리에 추가 후 다시 Gemini 호출
-        append_user(session_id, tool_result_parts)
+        append_user(session_id, list(tool_result_parts))
 
     # MAX_TOOL_ROUNDS 초과 — 안전 fallback
     logger.error("[%s] Tool 루프 최대 반복(%d) 초과", session_id, MAX_TOOL_ROUNDS)

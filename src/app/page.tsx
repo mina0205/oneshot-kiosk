@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect,useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { ZoomIn, ZoomOut, Contrast, RotateCcw } from "lucide-react";
 import { A2UIRenderer, A2UIMessage } from "@/components/a2ui/A2UIRenderer";
 import { ChatInput } from "@/components/ui/ChatInput";
@@ -10,6 +10,20 @@ import { useSessionStore } from "@/store/sessionStore";
 import { useChatStore } from "@/store/chatStore";
 import { useUIStore } from "@/store/uiStore";
 
+// ── 타입 정의 ──────────────────────────────────────────────────────────────
+interface MenuApiItem {
+  category?: string;
+  [key: string]: unknown;
+}
+
+interface AgentComponent {
+  type: string;
+  [key: string]: unknown;
+}
+
+// ── 유틸 ───────────────────────────────────────────────────────────────────
+
+// timeout 55초 (Gemini 멀티-툴 라운드 처리 시간 확보)
 const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
   return Promise.race([
     promise,
@@ -19,7 +33,11 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> => {
   ]);
 };
 
-const fetchWithRetry = async <T,>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> => {
+const fetchWithRetry = async <T,>(
+  fn: () => Promise<T>,
+  retries = 3,
+  delay = 1000
+): Promise<T> => {
   for (let i = 0; i < retries; i++) {
     try {
       return await fn();
@@ -32,16 +50,26 @@ const fetchWithRetry = async <T,>(fn: () => Promise<T>, retries = 3, delay = 100
   throw new Error("모든 재시도 실패");
 };
 
+// ── 상수 ───────────────────────────────────────────────────────────────────
+
 const localMenuMessages: A2UIMessage[] = menuData.map((menu, index) => ({
   id: `msg-menu-${index}`,
   type: "MenuCard",
   props: menu,
 }));
 
-export default function HomePage() {
+const CATEGORIES = [
+  { key: "burger", label: "🍔 버거" },
+  { key: "side",   label: "🍗 사이드" },
+  { key: "drink",  label: "🥤 음료" },
+];
 
+// ── 컴포넌트 ───────────────────────────────────────────────────────────────
+
+export default function HomePage() {
   const sessionId = useSessionStore((s) => s.sessionId);
   const setSendMessage = useChatStore((s) => s.setSendMessage);
+
   const [agentMessages, setAgentMessages] = useState<A2UIMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,51 +77,44 @@ export default function HomePage() {
   const [isHighContrast, setIsHighContrast] = useState(false);
   const [fontSize, setFontSize] = useState<"normal" | "large">("normal");
 
-  const overrideMessages = useUIStore((s) => s.overrideMessages);
   const isHomeRequested = useUIStore((s) => s.isHomeRequested);
   const resetHomeTrigger = useUIStore((s) => s.resetHomeTrigger);
 
   const [apiMenuMessages, setApiMenuMessages] = useState<A2UIMessage[] | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
-
   const [activeCategory, setActiveCategory] = useState<string>("burger");
 
-  // 카테고리 정의
-  const CATEGORIES = [
-  { key: "burger", label: "🍔 버거" },
-  { key: "side",   label: "🍗 사이드" },
-  { key: "drink",  label: "🥤 음료" },
-];
-
-  // 메뉴 필터링 함수
+  // 메뉴 필터링
   const filteredMenus = useMemo(() => {
     const all = apiMenuMessages ?? localMenuMessages;
-    const menus = all.filter((msg) => msg.type === "MenuCard");
-    return menus.filter((msg) => {
-      const cat = msg.props?.category;
-      if (activeCategory === "side") {
-        return cat === "side" || cat === "chicken" || cat === "iceshot";
-      }
-      return cat === activeCategory;
-    });
-  }, [apiMenuMessages, localMenuMessages, activeCategory]);
+    return all
+      .filter((msg) => msg.type === "MenuCard")
+      .filter((msg) => {
+        const cat = (msg.props as MenuApiItem)?.category;
+        if (activeCategory === "side") {
+          return cat === "side" || cat === "chicken" || cat === "iceshot";
+        }
+        return cat === activeCategory;
+      });
+  }, [apiMenuMessages, activeCategory]);
 
+  // 최초 마운트: 메뉴 API 로드
   useEffect(() => {
     fetchWithRetry(() => fetchMenus(), 3, 1000)
-      .then((menus) => {
-        const messages: A2UIMessage[] = menus.map((menu: any, index: number) => ({
+      .then((menus: MenuApiItem[]) => {
+        const messages: A2UIMessage[] = menus.map((menu, index) => ({
           id: `api-menu-${index}`,
           type: "MenuCard",
           props: menu,
         }));
         setApiMenuMessages(messages);
-        setApiError(null);
       })
-      .catch((err) => {
-        setApiError("서버와 연결이 불안정하여 로컬 메뉴로 대체합니다.");
-        setApiMenuMessages(null);
+      .catch(() => {
+        // 서버 연결 실패 시 localMenuMessages 사용 (null 유지)
       });
+  }, []);
 
+  // 홈 복귀 신호 처리
+  useEffect(() => {
     if (isHomeRequested) {
       setAgentMessages([]);
       useUIStore.getState().setOverrideMessages(null);
@@ -101,29 +122,31 @@ export default function HomePage() {
     }
   }, [isHomeRequested, resetHomeTrigger]);
 
-  const allMenuMessages = apiMenuMessages ?? localMenuMessages;
-
-  const handleSend = async (message: string) => {
+  // handleSend: sessionId가 바뀔 때만 재생성
+  const handleSend = useCallback(async (msg: string) => {
     useUIStore.getState().setOverrideMessages(null);
     setLoading(true);
     setError(null);
 
-        try {
-      const response = await withTimeout(sendChat(sessionId, message), 15000);
-      const { reply, components } = response;
+    try {
+      const response = await withTimeout(sendChat(sessionId, msg), 55000);
+      const { components } = response;
 
       if (components && Array.isArray(components)) {
-        const newMessages: A2UIMessage[] = components.map((comp: any, index: number) => ({
-          id: `agent-${Date.now()}-${index}`,
-          type: comp.type,
-          props: comp,
-        }));
+        const newMessages: A2UIMessage[] = (components as AgentComponent[]).map(
+          (comp, index) => ({
+            id: `agent-${Date.now()}-${index}`,
+            type: comp.type,
+            props: comp,
+          })
+        );
         setAgentMessages(newMessages);
       } else {
         setAgentMessages([]);
       }
-    } catch (err: any) {
-      if (err.message === "TIMEOUT") {
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : "unknown";
+      if (errMsg === "TIMEOUT") {
         setError("⚠️ AI 응답이 지연되고 있습니다. 다시 질문해주세요.");
       } else {
         setError("⚠️ 서버 연결이 끊어졌습니다.");
@@ -131,35 +154,44 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-    
-  };
+  }, [sessionId]);
 
+  // handleSend store 등록
   useEffect(() => {
     setSendMessage(handleSend);
-  }, [sessionId, allMenuMessages]);
-
-
-  const baseMessages = agentMessages.length > 0 ? agentMessages : allMenuMessages;
+  }, [handleSend, setSendMessage]);
 
   return (
-    <div className={`min-h-screen bg-lotteria-brown flex items-center justify-center p-2 sm:p-6 transition-colors duration-300 ${fontSize === "large" ? "text-lg" : "text-base"}`}>
-
+    <div
+      className={`min-h-screen bg-lotteria-brown flex items-center justify-center p-2 sm:p-6 transition-colors duration-300 ${
+        fontSize === "large" ? "text-lg" : "text-base"
+      }`}
+    >
       {/* 키오스크 프레임 */}
-      <div className={`w-full max-w-[600px] h-[95vh] max-h-[1200px] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative border-8 transition-colors duration-300 ${isHighContrast ? "bg-black text-white border-yellow-400" : "bg-lotteria-cream text-slate-900 border-lotteria-red"}`}>
-
+      <div
+        className={`w-full max-w-[600px] h-[95vh] max-h-[1200px] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative border-8 transition-colors duration-300 ${
+          isHighContrast
+            ? "bg-black text-white border-yellow-400"
+            : "bg-lotteria-cream text-slate-900 border-lotteria-red"
+        }`}
+      >
         {/* 헤더 바 */}
         <div className="bg-lotteria-red text-white px-6 py-3 flex justify-between items-center z-50 shadow-md">
           <div className="flex gap-4">
             <button
-              onClick={() => setFontSize(prev => prev === "normal" ? "large" : "normal")}
+              onClick={() => setFontSize((prev) => (prev === "normal" ? "large" : "normal"))}
               className="flex items-center gap-1.5 hover:text-lotteria-yellow transition-colors active:scale-95"
             >
               {fontSize === "normal" ? <ZoomIn size={20} /> : <ZoomOut size={20} />}
-              <span className="font-bold">{fontSize === "normal" ? "글자크게" : "기본크기"}</span>
+              <span className="font-bold">
+                {fontSize === "normal" ? "글자크게" : "기본크기"}
+              </span>
             </button>
             <button
               onClick={() => setIsHighContrast(!isHighContrast)}
-              className={`flex items-center gap-1.5 hover:text-lotteria-yellow transition-colors active:scale-95 ${isHighContrast ? "text-lotteria-yellow" : ""}`}
+              className={`flex items-center gap-1.5 hover:text-lotteria-yellow transition-colors active:scale-95 ${
+                isHighContrast ? "text-lotteria-yellow" : ""
+              }`}
             >
               <Contrast size={20} />
               <span className="font-bold">고대비</span>
@@ -175,7 +207,8 @@ export default function HomePage() {
         </div>
 
         {/* 메인 스크롤 영역 */}
-         <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 scroll-smooth">          <header className="mb-8 text-center">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 scroll-smooth">
+          <header className="mb-8 text-center">
             {/* 롯데리아 스타일 로고 */}
             <div className="inline-flex items-center gap-2 mb-4 mt-2">
               <div className="w-10 h-10 bg-lotteria-red rounded-full flex items-center justify-center">
@@ -209,20 +242,18 @@ export default function HomePage() {
                 🛒 장바구니
               </button>
             </div>
-
-
           </header>
 
-        {/* 타임아웃이나 서버 에러 시 빨간 배너 */}
+          {/* 에러 배너 */}
           {error && (
             <div className="mx-2 mb-3 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold text-center border border-red-200">
               {error}
             </div>
           )}
-        {/* 에이전트 응답 (채팅, 주문내역, 옵션선택 등) */}
+
+          {/* 에이전트 응답 or 메뉴 그리드 */}
           {agentMessages.length > 0 ? (
-        /* 에이전트 응답이 있으면 → 에이전트 결과만 표시 */
-        <div className="mt-4">
+            <div className="mt-4">
               <button
                 onClick={() => setAgentMessages([])}
                 className="mb-3 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all"
@@ -232,7 +263,6 @@ export default function HomePage() {
               <A2UIRenderer messages={agentMessages} />
             </div>
           ) : (
-            /* 에이전트 응답이 없으면 → 카테고리 탭 + 메뉴 그리드 */
             <>
               <div className="flex justify-center gap-2 mb-4">
                 {CATEGORIES.map((cat) => (
@@ -259,8 +289,7 @@ export default function HomePage() {
                 )}
               </div>
             </>
-    )}
-
+          )}
         </main>
 
         {/* 하단 챗 인풋 */}
