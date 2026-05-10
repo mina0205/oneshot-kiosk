@@ -21,7 +21,10 @@ export const CartView = (props: CartProps) => {
   const sessionId = useSessionStore((s) => s.sessionId);
   const setOverrideMessages = useUIStore((s) => s.setOverrideMessages); // 🚀 주문 완료 시 화면 덮어쓰기 함수
   
+  const selectedCouponId = useUIStore((s) => s.selectedCouponId);
+
   const [isOrdering, setIsOrdering] = useState(false); // 주문 중 로딩 상태
+
 
   const hasBEData = props.items && props.items.length > 0;
 
@@ -84,14 +87,17 @@ export const CartView = (props: CartProps) => {
 
     try {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      
+      const couponId = useUIStore.getState().selectedCouponId;
+      console.log("적용할 쿠폰:", couponId);
+
       // 1. 백엔드에 주문 정보 전송
       const response = await fetch(`${API_BASE_URL}/orders/${sessionId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           items: items, 
-          totalPrice: totalPrice 
+          totalPrice: totalPrice ,
+          couponId: couponId
         }),
       });
 
@@ -107,6 +113,7 @@ export const CartView = (props: CartProps) => {
     } finally {
       // 2. 장바구니 깔끔하게 비우기
       store.clearCart();
+      useUIStore.getState().setSelectedCouponId(null);
 
       // 3. 주문 완료 화면(OrderComplete)으로 화면 덮어쓰기
       if (typeof setOverrideMessages === 'function') {
@@ -219,7 +226,20 @@ export const CartView = (props: CartProps) => {
         )}
       </div>
 
-      <div className="mt-6 pt-4 border-t border-slate-200">
+            <div className="mt-6 pt-4 border-t border-slate-200">
+        {selectedCouponId && (
+          <div className="flex justify-between items-center mb-2 px-1">
+            <span className="text-sm text-green-600 font-bold flex items-center gap-1">
+              🎟️ 쿠폰 적용됨
+            </span>
+            <button
+              onClick={() => useUIStore.getState().setSelectedCouponId(null)}
+              className="text-xs text-slate-400 hover:text-red-400 transition-colors"
+            >
+              해제
+            </button>
+          </div>
+        )}
         <div className="flex justify-between items-center mb-4">
           <span className="text-slate-600 font-bold">총 결제 금액</span>
           <span className="text-2xl font-black text-orange-600">
@@ -240,6 +260,7 @@ export const CartView = (props: CartProps) => {
           ) : "주문하기"}
         </button>
       </div>
+
     </div>
   );
 };

@@ -219,21 +219,30 @@ export default function HomePage() {
               {error}
             </div>
           )}
-        {/* 에이전트 응답 (채팅, 주문내역, 옵션선택 등) */}
-          {agentMessages.length > 0 ? (
-        /* 에이전트 응답이 있으면 → 에이전트 결과만 표시 */
-        <div className="mt-4">
+
+          {overrideMessages ? (
+            <div className="mt-4">
               <button
-                onClick={() => setAgentMessages([])}
+                onClick={() => {
+                  useUIStore.getState().setOverrideMessages(null);
+                  setAgentMessages([]);
+                }}
                 className="mb-3 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all"
               >
+                ← 처음으로
+              </button>
+              <A2UIRenderer messages={overrideMessages} />
+            </div>
+          ) : agentMessages.length > 0 ? (
+            <div className="mt-4">
+              <button onClick={() => setAgentMessages([])} className="mb-3 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all">
                 ← 메뉴로 돌아가기
               </button>
               <A2UIRenderer messages={agentMessages} />
             </div>
           ) : (
-            /* 에이전트 응답이 없으면 → 카테고리 탭 + 메뉴 그리드 */
             <>
+              {/* 기존 카테고리 탭 + 메뉴 그리드 */}
               <div className="flex justify-center gap-2 mb-4">
                 {CATEGORIES.map((cat) => (
                   <button
@@ -259,7 +268,8 @@ export default function HomePage() {
                 )}
               </div>
             </>
-    )}
+            
+          )}
 
         </main>
 

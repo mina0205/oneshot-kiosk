@@ -8,12 +8,14 @@ export interface OrderCompleteProps {
   orderId: string;
   orderNumber: number;
   estimatedTime: number;
+  totalPrice?: number;      // ← 추가
+  discount?: number;      
   finalPrice: number;
   orderType: "dineIn" | "takeOut";
 }
 
 export const OrderComplete = (props: OrderCompleteProps) => {
-  const { orderId, orderNumber, estimatedTime, finalPrice, orderType } = props;
+  const { orderId, orderNumber, estimatedTime, totalPrice, discount,finalPrice, orderType } = props;
 
   return (
     <motion.div
@@ -69,12 +71,30 @@ export const OrderComplete = (props: OrderCompleteProps) => {
             </span>
           </div>
           <div className="border-t border-slate-200 my-1" />
+              {discount != null && discount > 0 && (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">주문 금액</span>
+                    <span className="font-medium text-slate-700">
+                      {(totalPrice ?? finalPrice + discount).toLocaleString()}원
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">할인</span>
+                    <span className="font-medium text-red-500">
+                      -{discount.toLocaleString()}원
+                    </span>
+                  </div>
+                </>
+              )}
           <div className="flex justify-between">
             <span className="font-bold text-slate-800">결제 금액</span>
             <span className="text-xl font-black text-orange-600">
               {finalPrice.toLocaleString()}원
             </span>
           </div>
+
+  
         </div>
 
         <button

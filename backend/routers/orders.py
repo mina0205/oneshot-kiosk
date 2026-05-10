@@ -79,6 +79,8 @@ def create_order(session_id: str, req: OrderRequest):
         "orderId": order["orderId"],
         "orderNumber": order["orderNumber"],
         "estimatedTime": order["estimatedTime"],
+        "totalPrice": order["totalPrice"],      
+        "discount": order["discount"],  
         "finalPrice": order["finalPrice"],
         "orderType": order["orderType"],
     }
