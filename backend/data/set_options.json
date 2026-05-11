@@ -1,0 +1,30 @@
+{
+  "sides": [
+    { "menuId": "side-001", "name": "포테이토(R)", "priceDiff": 0, "image": "/images/potato-r.png" },
+    { "menuId": "side-002", "name": "포테이토(L)", "priceDiff": 500, "image": "/images/potato-l.png" },
+    { "menuId": "side-003", "name": "양념감자", "priceDiff": 600, "image": "/images/seasoned-potato.png" },
+    { "menuId": "side-004", "name": "치즈스틱", "priceDiff": 800, "image": "/images/cheese-stick.png" },
+    { "menuId": "side-005", "name": "통오징어링", "priceDiff": 800, "image": "/images/squid-ring.png" },
+    { "menuId": "side-006", "name": "코울슬로", "priceDiff": 0, "image": "/images/coleslaw.png" },
+    { "menuId": "side-007", "name": "치킨너겟", "priceDiff": 1100, "image": "/images/nuggets.png" }
+  ],
+  "drinks": [
+    { "menuId": "drink-001", "name": "펩시콜라", "size": "R", "priceDiff": 0, "image": "/images/pepsi-r.png" },
+    { "menuId": "drink-002", "name": "펩시콜라", "size": "L", "priceDiff": 200, "image": "/images/pepsi-l.png" },
+    { "menuId": "drink-003", "name": "제로슈거콜라", "size": "R", "priceDiff": 0, "image": "/images/zero-cola-r.png" },
+    { "menuId": "drink-004", "name": "제로슈거콜라", "size": "L", "priceDiff": 200, "image": "/images/zero-cola-l.png" },
+    { "menuId": "drink-005", "name": "칠성사이다", "size": "R", "priceDiff": 0, "image": "/images/cider-r.png" },
+    { "menuId": "drink-006", "name": "칠성사이다", "size": "L", "priceDiff": 200, "image": "/images/cider-l.png" },
+    { "menuId": "drink-007", "name": "아이스아메리카노", "size": "R", "priceDiff": 500, "image": "/images/iced-americano-r.png" },
+    { "menuId": "drink-008", "name": "아이스아메리카노", "size": "L", "priceDiff": 1000, "image": "/images/iced-americano-l.png" },
+    { "menuId": "drink-009", "name": "아이스티", "size": "R", "priceDiff": 300, "image": "/images/icetea-r.png" },
+    { "menuId": "drink-010", "name": "아이스티", "size": "L", "priceDiff": 500, "image": "/images/icetea-l.png" }
+  ],
+  "toppings": [
+    { "toppingId": "top-001", "name": "치즈토핑", "price": 800, "calories": 64, "allergens": ["우유"] },
+    { "toppingId": "top-002", "name": "베이컨토핑", "price": 800, "calories": 42, "allergens": ["돼지고기"] },
+    { "toppingId": "top-003", "name": "토마토토핑", "price": 500, "calories": 4, "allergens": ["토마토"] },
+    { "toppingId": "top-004", "name": "비프패티토핑", "price": 2000, "calories": 172, "allergens": ["쇠고기"] },
+    { "toppingId": "top-005", "name": "반숙계란토핑", "price": 800, "calories": 43, "allergens": ["달걀", "대두"] }
+  ]
+}
