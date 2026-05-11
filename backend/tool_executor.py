@@ -26,11 +26,19 @@ async def execute_tool(tool_name: str, args: dict) -> Any:
             params = {}
             if "category" in args:
                 params["category"] = args["category"]
-            return await _call_backend("get", "/menus", params=params)
+                
+            menus = await _call_backend("get", "/menus", params=params)
+            return [_compact_menu(m) for m in menus]
 
         elif tool_name == "search_menus_by_condition":
-            params = {k: v for k, v in args.items() if v is not None}
-            return await _call_backend("get", "/menus/search", params=params)
+            params = {
+                k: v for k, v in args.items()
+                if k not in ("session_id",) and v is not None
+            }
+
+            menus = await _call_backend("get", "/menus/search", params=params)
+
+            return [_compact_menu(m) for m in menus]
 
         elif tool_name == "get_menu_detail":
             menu_id = args["menuId"]
@@ -132,3 +140,22 @@ async def execute_tool(tool_name: str, args: dict) -> Any:
     except Exception as e:
         logger.error("Tool 실행 오류 [%s]: %s", tool_name, e)
         return {"error": str(e)}
+
+def _compact_menu(menu: dict) -> dict:
+    """
+    AI에게 넘길 메뉴 정보를 최소화한다.
+    목록/추천 화면에 필요한 필드만 유지한다.
+    """
+    return {
+        "menuId": menu.get("menuId"),
+        "name": menu.get("name"),
+        "category": menu.get("category"),
+        "price": menu.get("price"),
+        "setPrice": menu.get("setPrice"),
+        "calories": menu.get("calories"),
+        "image": menu.get("image"),
+        "description": menu.get("description"),
+        "isNew": menu.get("isNew"),
+        "isBestSeller": menu.get("isBestSeller"),
+        "soldOut": menu.get("soldOut"),
+    }
