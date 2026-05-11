@@ -90,3 +90,5 @@
 {"timestamp":"00:36:13.590","source":"Server","level":"ERROR","message":"Error: ENOENT: no such file or directory, scandir '/Users/yh/oneshot-kiosk/src/app'"}
 {"timestamp":"00:36:13.716","source":"Server","level":"ERROR","message":"Error: ENOENT: no such file or directory, scandir '/Users/yh/oneshot-kiosk/src/app'"}
 {"timestamp":"00:36:13.719","source":"Server","level":"ERROR","message":"Error: ENOENT: no such file or directory, scandir '/Users/yh/oneshot-kiosk/src/app'"}
+{"timestamp":"01:03:20.279","source":"Server","level":"ERROR","message":"Error: ENOENT: no such file or directory, scandir '/Users/yh/oneshot-kiosk/src/app'"}
+{"timestamp":"01:03:20.281","source":"Server","level":"ERROR","message":"Error: ENOENT: no such file or directory, scandir '/Users/yh/oneshot-kiosk/src/app'"}

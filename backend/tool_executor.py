@@ -3,17 +3,27 @@ from typing import Any
 
 import httpx
 
+
+
 BACKEND_BASE = "http://localhost:8000"
 
 logger = logging.getLogger(__name__)
 
+_http_client: httpx.AsyncClient | None = None
+
+
+def get_http_client() -> httpx.AsyncClient:
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(timeout=10.0)
+    return _http_client
 
 async def _call_backend(method: str, path: str, **kwargs) -> dict:
     url = f"{BACKEND_BASE}{path}"
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await getattr(client, method)(url, **kwargs)
-        resp.raise_for_status()
-        return resp.json()
+    client = get_http_client()
+    resp = await getattr(client, method)(url, **kwargs)
+    resp.raise_for_status()
+    return resp.json()
 
 
 async def execute_tool(tool_name: str, args: dict) -> Any:

@@ -1,0 +1,72 @@
+// [Cell 2]: src/data/menuData.ts
+// 프론트엔드에서 활용할 메뉴 및 세트 옵션 데이터
+
+import { MenuItem, SetOptionCatalog } from '../types/kiosk';
+
+export const menuData: MenuItem[] = [
+  // (올려주신 JSON 데이터 8개 버거를 그대로 넣습니다)
+  {
+    "menuId": "burger-001", "name": "리아 불고기", "category": "burger", "price": 5800, "setPrice": 8600, "calories": 462, "description": "달콤한 불고기 소스와 신선한 야채의 조화", "image": "/images/ria-bulgogi.png", "allergens": ["밀", "대두", "달걀", "우유", "쇠고기", "토마토", "돼지고기", "닭고기"], "isNew": false, "isBestSeller": true, "soldOut": false,
+    "nutrition": { "weight": 192, "calories": 462, "protein": 21, "sodium": 880, "sugar": 11, "saturatedFat": 11 }
+  },
+  {
+    "menuId": "burger-002", "name": "데리버거", "category": "burger", "price": 4500, "setPrice": 7400, "calories": 348, "description": "부드러운 데리야끼 소스의 클래식 버거", "image": "/images/deri-burger.png", "allergens": ["달걀", "밀", "대두", "우유", "쇠고기", "닭고기"], "isNew": false, "isBestSeller": true, "soldOut": false,
+    "nutrition": { "weight": 134, "calories": 348, "protein": 12, "sodium": 590, "sugar": 10, "saturatedFat": 4.9 }
+  },
+  {
+    "menuId": "burger-003", "name": "한우불고기버거", "category": "burger", "price": 9800, "setPrice": 12200, "calories": 572, "description": "100% 국내산 한우 패티의 프리미엄 버거", "image": "/images/hanwoo-bulgogi.png", "allergens": ["달걀", "밀", "대두", "우유", "쇠고기", "토마토"], "isNew": false, "isBestSeller": true, "soldOut": false,
+    "nutrition": { "weight": 263, "calories": 572, "protein": 23, "sodium": 800, "sugar": 15, "saturatedFat": 12 }
+  },
+  {
+    "menuId": "burger-004", "name": "핫크리스피치킨버거", "category": "burger", "price": 7000, "setPrice": 9600, "calories": 454, "description": "바삭한 치킨 패티와 매콤한 소스의 만남", "image": "/images/hot-crispy.png", "allergens": ["달걀", "밀", "대두", "닭고기", "토마토"], "isNew": false, "isBestSeller": false, "soldOut": false,
+    "nutrition": { "weight": 190, "calories": 454, "protein": 22, "sodium": 900, "sugar": 4, "saturatedFat": 5 }
+  },
+  {
+    "menuId": "burger-005", "name": "NEW 미라클버거", "category": "burger", "price": 6500, "setPrice": 9200, "calories": 382, "description": "식물성 패티로 만든 새로운 맛의 버거", "image": "/images/miracle-burger.png", "allergens": ["밀", "대두", "토마토"], "isNew": true, "isBestSeller": false, "soldOut": false,
+    "nutrition": { "weight": 181, "calories": 382, "protein": 15, "sodium": 600, "sugar": 7, "saturatedFat": 4.6 }
+  },
+  {
+    "menuId": "burger-006", "name": "치킨버거", "category": "burger", "price": 5100, "setPrice": 8000, "calories": 355, "description": "담백한 치킨 패티의 가성비 버거", "image": "/images/chicken-burger.png", "allergens": ["달걀", "밀", "대두", "우유", "닭고기", "땅콩"], "isNew": false, "isBestSeller": false, "soldOut": false,
+    "nutrition": { "weight": 141, "calories": 355, "protein": 15, "sodium": 620, "sugar": 8, "saturatedFat": 3.8 }
+  },
+  {
+    "menuId": "burger-007", "name": "클래식치즈버거", "category": "burger", "price": 6300, "setPrice": 9000, "calories": 482, "description": "고소한 치즈와 쇠고기 패티의 클래식 조합", "image": "/images/classic-cheese.png", "allergens": ["달걀", "밀", "대두", "우유", "쇠고기"], "isNew": false, "isBestSeller": false, "soldOut": false,
+    "nutrition": { "weight": 146, "calories": 482, "protein": 16, "sodium": 710, "sugar": 5, "saturatedFat": 13 }
+  },
+  {
+    "menuId": "burger-008", "name": "리아 새우", "category": "burger", "price": 5800, "setPrice": 8600, "calories": 473, "description": "통새우 패티의 바삭한 식감", "image": "/images/ria-shrimp.png", "allergens": ["달걀", "밀", "대두", "우유", "토마토", "새우"], "isNew": false, "isBestSeller": false, "soldOut": false,
+    "nutrition": { "weight": 179, "calories": 473, "protein": 15, "sodium": 900, "sugar": 5, "saturatedFat": 3.8 }
+  }
+];
+
+export const setOptionsData: SetOptionCatalog = {
+  // (올려주신 세트 옵션 JSON을 그대로 넣습니다)
+  "sides": [
+    { "menuId": "side-001", "name": "포테이토(R)", "priceDiff": 0, "image": "/images/potato-r.png" },
+    { "menuId": "side-002", "name": "포테이토(L)", "priceDiff": 500, "image": "/images/potato-l.png" },
+    { "menuId": "side-003", "name": "양념감자", "priceDiff": 600, "image": "/images/seasoned-potato.png" },
+    { "menuId": "side-004", "name": "치즈스틱", "priceDiff": 800, "image": "/images/cheese-stick.png" },
+    { "menuId": "side-005", "name": "통오징어링", "priceDiff": 800, "image": "/images/squid-ring.png" },
+    { "menuId": "side-006", "name": "코울슬로", "priceDiff": 0, "image": "/images/coleslaw.png" },
+    { "menuId": "side-007", "name": "치킨너겟", "priceDiff": 1100, "image": "/images/nuggets.png" }
+  ],
+  "drinks": [
+    { "menuId": "drink-001", "name": "펩시콜라", "size": "R", "priceDiff": 0, "image": "/images/pepsi-r.png" },
+    { "menuId": "drink-002", "name": "펩시콜라", "size": "L", "priceDiff": 200, "image": "/images/pepsi-l.png" },
+    { "menuId": "drink-003", "name": "제로슈거콜라", "size": "R", "priceDiff": 0, "image": "/images/zero-cola-r.png" },
+    { "menuId": "drink-004", "name": "제로슈거콜라", "size": "L", "priceDiff": 200, "image": "/images/zero-cola-l.png" },
+    { "menuId": "drink-005", "name": "칠성사이다", "size": "R", "priceDiff": 0, "image": "/images/cider-r.png" },
+    { "menuId": "drink-006", "name": "칠성사이다", "size": "L", "priceDiff": 200, "image": "/images/cider-l.png" },
+    { "menuId": "drink-007", "name": "아이스아메리카노", "size": "R", "priceDiff": 500, "image": "/images/iced-americano-r.png" },
+    { "menuId": "drink-008", "name": "아이스아메리카노", "size": "L", "priceDiff": 1000, "image": "/images/iced-americano-l.png" },
+    { "menuId": "drink-009", "name": "아이스티", "size": "R", "priceDiff": 300, "image": "/images/icetea-r.png" },
+    { "menuId": "drink-010", "name": "아이스티", "size": "L", "priceDiff": 500, "image": "/images/icetea-l.png" }
+  ],
+  "toppings": [
+    { "toppingId": "top-001", "name": "치즈토핑", "price": 800, "calories": 64, "allergens": ["우유"] },
+    { "toppingId": "top-002", "name": "베이컨토핑", "price": 800, "calories": 42, "allergens": ["돼지고기"] },
+    { "toppingId": "top-003", "name": "토마토토핑", "price": 500, "calories": 4, "allergens": ["토마토"] },
+    { "toppingId": "top-004", "name": "비프패티토핑", "price": 2000, "calories": 172, "allergens": ["쇠고기"] },
+    { "toppingId": "top-005", "name": "반숙계란토핑", "price": 800, "calories": 43, "allergens": ["달걀", "대두"] }
+  ]
+};

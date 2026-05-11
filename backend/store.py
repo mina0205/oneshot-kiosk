@@ -8,3 +8,5 @@ orders: dict = {}
 
 # 대기번호 카운터
 order_counter = 0
+
+order_index: dict = {}
