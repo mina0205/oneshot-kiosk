@@ -1,4 +1,4 @@
-// [Cell 1]: src/components/a2ui/CartView.tsx
+// src/components/a2ui/CartView.tsx
 // 백엔드(BE) 연동 및 주문 완료 화면 전환 로직이 포함된 최종 장바구니 컴포넌트입니다.
 
 "use client";
@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { Minus, Plus, Trash2, Loader2 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useSessionStore } from '@/store/sessionStore';
-import { useUIStore } from '@/store/uiStore'; // 🚀 UI 상태 관리를 위해 추가
+import { useUIStore } from '@/store/uiStore';
 
 interface CartProps {
   items?: any[];
@@ -19,19 +19,29 @@ interface CartProps {
 export const CartView = (props: CartProps) => {
   const store = useCartStore();
   const sessionId = useSessionStore((s) => s.sessionId);
-  const setOverrideMessages = useUIStore((s) => s.setOverrideMessages); // 🚀 주문 완료 시 화면 덮어쓰기 함수
+  const setOverrideMessages = useUIStore((s) => s.setOverrideMessages);
   
   const selectedCouponId = useUIStore((s) => s.selectedCouponId);
+  const selectedCoupon = useUIStore((s) => s.selectedCoupon); // 추가
 
-  const [isOrdering, setIsOrdering] = useState(false); // 주문 중 로딩 상태
-
+  const [isOrdering, setIsOrdering] = useState(false);
 
   const hasBEData = props.items && props.items.length > 0;
 
-  // 표시할 데이터 결정 (BE 데이터가 있으면 최우선, 없으면 FE Zustand 스토어 데이터)
   const items = hasBEData ? props.items! : store.items;
   const totalPrice = hasBEData ? props.totalPrice! : store.totalPrice;
   const itemCount = hasBEData ? props.itemCount! : store.itemCount;
+
+  // 쿠폰 할인 금액 계산 (백엔드 orders.py 로직과 동일)
+  const couponDiscount = (() => {
+    if (!selectedCoupon || !totalPrice) return 0;
+    if (totalPrice < selectedCoupon.minOrderPrice) return 0;
+    if (selectedCoupon.discountType === "amount") return selectedCoupon.discountValue;
+    if (selectedCoupon.discountType === "rate") return Math.floor(totalPrice * selectedCoupon.discountValue);
+    return 0;
+  })();
+
+  const finalPrice = (totalPrice || 0) - couponDiscount;
 
   // [기능] BE 장바구니 항목 삭제
   const handleBERemove = async (cartItemId: string) => {
@@ -40,12 +50,11 @@ export const CartView = (props: CartProps) => {
       await fetch(`${API_BASE_URL}/cart/${sessionId}/items/${cartItemId}`, {
         method: "DELETE",
       });
-      // UI 즉시 반영을 위한 로직
       if (props.items) {
         const idx = props.items.findIndex((i: any) => i.cartItemId === cartItemId);
         if (idx !== -1) props.items.splice(idx, 1);
       }
-      store.clearCart(); // 리렌더링 트리거
+      store.clearCart();
     } catch (err) {
       console.warn("BE 장바구니 삭제 실패:", err);
     }
@@ -78,53 +87,47 @@ export const CartView = (props: CartProps) => {
     }
   };
 
-  // 🚀 [기능] 주문 확정 및 화면 전환 (최종 완성본)
+  // [기능] 주문 확정 및 화면 전환
   const handleOrder = async () => {
     if (items.length === 0 || isOrdering) return;
     setIsOrdering(true);
 
-    let orderResult: any = null; // 백엔드에서 받은 진짜 데이터를 담을 바구니
+    let orderResult: any = null;
 
     try {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const couponId = useUIStore.getState().selectedCouponId;
-      console.log("적용할 쿠폰:", couponId);
 
-      // 1. 백엔드에 주문 정보 전송
       const response = await fetch(`${API_BASE_URL}/orders/${sessionId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           items: items, 
-          totalPrice: totalPrice ,
+          totalPrice: totalPrice,
           couponId: couponId
         }),
       });
 
       if (response.ok) {
-        // 🚀 백엔드(orders.py)가 내려주는 진짜 데이터(최종 가격, 주문번호 등)를 저장!
         orderResult = await response.json(); 
-        console.log("BE 주문 성공:", orderResult);
       } else {
         console.warn("BE 주문 응답 실패 (폴백 UI 실행)");
       }
     } catch (error) {
       console.error("주문 통신 에러 (서버 미연결):", error);
     } finally {
-      // 2. 장바구니 깔끔하게 비우기
       store.clearCart();
       useUIStore.getState().setSelectedCouponId(null);
+      useUIStore.getState().setSelectedCoupon(null); // 추가: 주문 후 쿠폰 객체도 초기화
 
-      // 3. 주문 완료 화면(OrderComplete)으로 화면 덮어쓰기
       if (typeof setOverrideMessages === 'function') {
         setOverrideMessages([
           {
             id: `order-success-${Date.now()}`,
-            type: 'OrderComplete', 
-            // 🚀 핵심: 백엔드 데이터가 있으면 그걸 통째로 넘기고, 없으면 에러 안 나게 임시 가격(totalPrice)을 넣어줍니다!
+            type: 'OrderComplete',
             props: orderResult ? orderResult : { 
               orderNumber: Math.floor(Math.random() * 900) + 100,
-              finalPrice: totalPrice, 
+              finalPrice: finalPrice,
               totalPrice: totalPrice
             }
           }
@@ -170,7 +173,7 @@ export const CartView = (props: CartProps) => {
                       <span>- {item.selectedDrink || '음료 미선택'} {item.drinkSize === 'L' ? '(L)' : '(R)'}</span>
                     </div>
                   )}
-                                    {item.toppings && item.toppings.length > 0 && (
+                  {item.toppings && item.toppings.length > 0 && (
                     <div className="text-xs text-purple-500 mt-1 flex flex-wrap gap-1">
                       {item.toppings.map((t: string) => (
                         <span key={t} className="bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
@@ -226,25 +229,54 @@ export const CartView = (props: CartProps) => {
         )}
       </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-200">
+      {/* 금액 및 주문 버튼 영역 */}
+      <div className="mt-6 pt-4 border-t border-slate-200">
+
+        {/* 쿠폰 적용 배너 */}
         {selectedCouponId && (
-          <div className="flex justify-between items-center mb-2 px-1">
+          <div className="flex justify-between items-center mb-3 px-1">
             <span className="text-sm text-green-600 font-bold flex items-center gap-1">
               🎟️ 쿠폰 적용됨
+              {couponDiscount > 0
+                ? ` (-${couponDiscount.toLocaleString()}원)`
+                : " (현재 금액 미달)"}
             </span>
             <button
-              onClick={() => useUIStore.getState().setSelectedCouponId(null)}
+              onClick={() => {
+                useUIStore.getState().setSelectedCouponId(null);
+                useUIStore.getState().setSelectedCoupon(null); // 추가: 쿠폰 객체도 함께 초기화
+              }}
               className="text-xs text-slate-400 hover:text-red-400 transition-colors"
             >
               해제
             </button>
           </div>
         )}
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-slate-600 font-bold">총 결제 금액</span>
-          <span className="text-2xl font-black text-orange-600">
-            {(totalPrice || 0).toLocaleString()}원
-          </span>
+
+        {/* 금액 요약 */}
+        <div className="flex flex-col gap-2 mb-4">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-slate-500">주문 금액</span>
+            <span className="text-slate-700 font-medium">
+              {(totalPrice || 0).toLocaleString()}원
+            </span>
+          </div>
+
+          {couponDiscount > 0 && (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-green-600 font-bold">쿠폰 할인</span>
+              <span className="text-green-600 font-bold">
+                -{couponDiscount.toLocaleString()}원
+              </span>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center border-t border-slate-200 pt-2">
+            <span className="text-slate-600 font-bold">최종 결제 금액</span>
+            <span className="text-2xl font-black text-orange-600">
+              {finalPrice.toLocaleString()}원
+            </span>
+          </div>
         </div>
         
         <button 
