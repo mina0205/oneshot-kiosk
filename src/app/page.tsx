@@ -84,6 +84,7 @@ export default function HomePage() {
     });
   }, [apiMenuMessages, localMenuMessages, activeCategory]);
 
+  // ✅ 수정: 메뉴 로딩은 최초 1회만 실행
   useEffect(() => {
     fetchWithRetry(() => fetchMenus(), 3, 1000)
       .then((menus) => {
@@ -101,7 +102,10 @@ export default function HomePage() {
         setApiError("서버와 연결이 불안정하여 로컬 메뉴로 대체합니다.");
         setApiMenuMessages(null);
       });
+  }, []); // ✅ 빈 배열: 앱 시작 시 딱 1번만 실행
 
+  // ✅ 수정: 홈 리셋은 별도 useEffect로 분리
+  useEffect(() => {
     if (isHomeRequested) {
       setAgentMessages([]);
       useUIStore.getState().setOverrideMessages(null);
