@@ -64,14 +64,12 @@ export default function HomePage() {
 
   const [activeCategory, setActiveCategory] = useState<string>("burger");
 
-  // 카테고리 정의
   const CATEGORIES = [
     { key: "burger", label: "🍔 버거" },
     { key: "side", label: "🍗 사이드" },
     { key: "drink", label: "🥤 음료" },
   ];
 
-  // 메뉴 필터링 함수
   const filteredMenus = useMemo(() => {
     const all = apiMenuMessages ?? localMenuMessages;
     const menus = all.filter((msg) => msg.type === "MenuCard");
@@ -84,7 +82,6 @@ export default function HomePage() {
     });
   }, [apiMenuMessages, localMenuMessages, activeCategory]);
 
-  // ✅ 수정: 메뉴 로딩은 최초 1회만 실행
   useEffect(() => {
     fetchWithRetry(() => fetchMenus(), 3, 1000)
       .then((menus) => {
@@ -102,9 +99,8 @@ export default function HomePage() {
         setApiError("서버와 연결이 불안정하여 로컬 메뉴로 대체합니다.");
         setApiMenuMessages(null);
       });
-  }, []); // ✅ 빈 배열: 앱 시작 시 딱 1번만 실행
+  }, []);
 
-  // ✅ 수정: 홈 리셋은 별도 useEffect로 분리
   useEffect(() => {
     if (isHomeRequested) {
       setAgentMessages([]);
@@ -158,7 +154,6 @@ export default function HomePage() {
     <div
       className={`min-h-screen bg-lotteria-brown flex items-center justify-center p-2 sm:p-6 transition-colors duration-300 ${fontSize === "large" ? "text-lg" : "text-base"}`}
     >
-      {/* 키오스크 프레임 */}
       <div
         className={`w-full max-w-[600px] h-[95vh] max-h-[1200px] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative border-8 transition-colors duration-300 ${isHighContrast ? "bg-black text-white border-yellow-400" : "bg-lotteria-cream text-slate-900 border-lotteria-red"}`}
       >
@@ -202,7 +197,6 @@ export default function HomePage() {
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 scroll-smooth">
           {" "}
           <header className="mb-8 text-center">
-            {/* 롯데리아 스타일 로고 */}
             <div className="inline-flex items-center gap-2 mb-4 mt-2">
               <div className="w-10 h-10 bg-lotteria-red rounded-full flex items-center justify-center">
                 <span className="text-white font-black text-lg">L</span>
@@ -238,15 +232,20 @@ export default function HomePage() {
               </button>
             </div>
           </header>
-          {/* 타임아웃이나 서버 에러 시 빨간 배너 */}
+
+          {/* 에러 배너 */}
           {error && (
             <div className="mx-2 mb-3 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold text-center border border-red-200">
               {error}
             </div>
           )}
-          {/* 에이전트 응답 (채팅, 주문내역, 옵션선택 등) */}
-          {agentMessages.length > 0 ? (
-            /* 에이전트 응답이 있으면 → 에이전트 결과만 표시 */
+
+          {/* ✅ 핵심 수정: overrideMessages 최우선 렌더링 */}
+          {overrideMessages ? (
+            <div className="mt-4">
+              <A2UIRenderer messages={overrideMessages} />
+            </div>
+          ) : agentMessages.length > 0 ? (
             <div className="mt-4">
               <button
                 onClick={() => setAgentMessages([])}
@@ -257,7 +256,6 @@ export default function HomePage() {
               <A2UIRenderer messages={agentMessages} />
             </div>
           ) : (
-            /* 에이전트 응답이 없으면 → 카테고리 탭 + 메뉴 그리드 */
             <>
               <div className="flex justify-center gap-2 mb-4">
                 {CATEGORIES.map((cat) => (

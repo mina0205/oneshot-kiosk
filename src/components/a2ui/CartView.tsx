@@ -22,7 +22,7 @@ export const CartView = (props: CartProps) => {
   const setOverrideMessages = useUIStore((s) => s.setOverrideMessages);
   
   const selectedCouponId = useUIStore((s) => s.selectedCouponId);
-  const selectedCoupon = useUIStore((s) => s.selectedCoupon); // 추가
+  const selectedCoupon = useUIStore((s) => s.selectedCoupon);
 
   const [isOrdering, setIsOrdering] = useState(false);
 
@@ -32,7 +32,6 @@ export const CartView = (props: CartProps) => {
   const totalPrice = hasBEData ? props.totalPrice! : store.totalPrice;
   const itemCount = hasBEData ? props.itemCount! : store.itemCount;
 
-  // 쿠폰 할인 금액 계산 (백엔드 orders.py 로직과 동일)
   const couponDiscount = (() => {
     if (!selectedCoupon || !totalPrice) return 0;
     if (totalPrice < selectedCoupon.minOrderPrice) return 0;
@@ -43,7 +42,6 @@ export const CartView = (props: CartProps) => {
 
   const finalPrice = (totalPrice || 0) - couponDiscount;
 
-  // [기능] BE 장바구니 항목 삭제
   const handleBERemove = async (cartItemId: string) => {
     try {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -60,7 +58,6 @@ export const CartView = (props: CartProps) => {
     }
   };
 
-  // [기능] BE 장바구니 수량 변경
   const handleBEUpdateQuantity = async (cartItemId: string, currentQty: number, delta: number) => {
     const newQty = currentQty + delta;
     if (newQty <= 0) {
@@ -87,7 +84,6 @@ export const CartView = (props: CartProps) => {
     }
   };
 
-  // [기능] 주문 확정 및 화면 전환
   const handleOrder = async () => {
     if (items.length === 0 || isOrdering) return;
     setIsOrdering(true);
@@ -98,18 +94,18 @@ export const CartView = (props: CartProps) => {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const couponId = useUIStore.getState().selectedCouponId;
 
+      // ✅ 수정: 백엔드 OrderRequest 모델에 맞게 orderType, couponId만 전송
       const response = await fetch(`${API_BASE_URL}/orders/${sessionId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          items: items, 
-          totalPrice: totalPrice,
-          couponId: couponId
+        body: JSON.stringify({
+          orderType: "dineIn",
+          couponId: couponId || undefined,
         }),
       });
 
       if (response.ok) {
-        orderResult = await response.json(); 
+        orderResult = await response.json();
       } else {
         console.warn("BE 주문 응답 실패 (폴백 UI 실행)");
       }
@@ -118,14 +114,14 @@ export const CartView = (props: CartProps) => {
     } finally {
       store.clearCart();
       useUIStore.getState().setSelectedCouponId(null);
-      useUIStore.getState().setSelectedCoupon(null); // 추가: 주문 후 쿠폰 객체도 초기화
+      useUIStore.getState().setSelectedCoupon(null);
 
       if (typeof setOverrideMessages === 'function') {
         setOverrideMessages([
           {
             id: `order-success-${Date.now()}`,
             type: 'OrderComplete',
-            props: orderResult ? orderResult : { 
+            props: orderResult ? orderResult : {
               orderNumber: Math.floor(Math.random() * 900) + 100,
               finalPrice: finalPrice,
               totalPrice: totalPrice
@@ -133,7 +129,7 @@ export const CartView = (props: CartProps) => {
           }
         ]);
       }
-      
+
       setIsOrdering(false);
     }
   };
@@ -153,8 +149,8 @@ export const CartView = (props: CartProps) => {
         ) : (
           <ul className="flex flex-col gap-3">
             {items.map((item: any) => (
-              <li 
-                key={item.cartItemId} 
+              <li
+                key={item.cartItemId}
                 className={`flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border ${
                   item.isModified ? 'border-orange-400 bg-orange-50' : 'border-slate-100'
                 }`}
@@ -166,7 +162,7 @@ export const CartView = (props: CartProps) => {
                       <span className="text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full">변경됨</span>
                     )}
                   </div>
-                  
+
                   {item.isSet && (
                     <div className="text-xs text-slate-500 mt-1 flex flex-col gap-0.5">
                       <span>- {item.selectedSide || '사이드 미선택'}</span>
@@ -187,20 +183,20 @@ export const CartView = (props: CartProps) => {
                     {(item.subtotal || 0).toLocaleString()}원
                   </span>
                 </div>
-                
+
                 <div className="flex flex-col items-end gap-3">
-                  <button 
-                    onClick={() => hasBEData 
-                      ? handleBERemove(item.cartItemId) 
+                  <button
+                    onClick={() => hasBEData
+                      ? handleBERemove(item.cartItemId)
                       : store.removeItem(item.cartItemId, sessionId)
-                    } 
+                    }
                     className="text-slate-300 hover:text-red-500 transition-colors"
                   >
                     <Trash2 size={16} />
                   </button>
-                  
+
                   <div className="flex items-center gap-3 bg-slate-100 rounded-full px-2 py-1 shadow-inner">
-                    <button 
+                    <button
                       onClick={() => hasBEData
                         ? handleBEUpdateQuantity(item.cartItemId, item.quantity, -1)
                         : store.updateQuantity(item.cartItemId, -1, sessionId)
@@ -212,7 +208,7 @@ export const CartView = (props: CartProps) => {
                     <span className="text-sm font-black w-4 text-center text-slate-800">
                       {item.quantity}
                     </span>
-                    <button 
+                    <button
                       onClick={() => hasBEData
                         ? handleBEUpdateQuantity(item.cartItemId, item.quantity, 1)
                         : store.updateQuantity(item.cartItemId, 1, sessionId)
@@ -244,7 +240,7 @@ export const CartView = (props: CartProps) => {
             <button
               onClick={() => {
                 useUIStore.getState().setSelectedCouponId(null);
-                useUIStore.getState().setSelectedCoupon(null); // 추가: 쿠폰 객체도 함께 초기화
+                useUIStore.getState().setSelectedCoupon(null);
               }}
               className="text-xs text-slate-400 hover:text-red-400 transition-colors"
             >
@@ -278,8 +274,8 @@ export const CartView = (props: CartProps) => {
             </span>
           </div>
         </div>
-        
-        <button 
+
+        <button
           onClick={handleOrder}
           disabled={items.length === 0 || isOrdering}
           className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl hover:bg-slate-800 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors shadow-md flex justify-center items-center"
