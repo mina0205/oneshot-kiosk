@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Any
 
 import httpx
@@ -6,14 +7,19 @@ import httpx
 BACKEND_BASE = "http://localhost:8000"
 
 logger = logging.getLogger(__name__)
+_backend_client = httpx.AsyncClient(timeout=10.0)
 
 
 async def _call_backend(method: str, path: str, **kwargs) -> dict:
     url = f"{BACKEND_BASE}{path}"
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await getattr(client, method)(url, **kwargs)
+    t0 = time.perf_counter()
+    try:
+        resp = await getattr(_backend_client, method)(url, **kwargs)
         resp.raise_for_status()
         return resp.json()
+    finally:
+        t1 = time.perf_counter()
+        logger.warning("be_call method=%s path=%s ms=%.1f", method.upper(), path, (t1 - t0) * 1000)
 
 
 async def execute_tool(tool_name: str, args: dict) -> Any:
