@@ -116,8 +116,8 @@ export default function HomePage() {
     setLoading(true);
     setError(null);
 
-    try {
-      const response = await withTimeout(sendChat(sessionId, message), 15000);
+        try {
+      const response = await withTimeout(sendChat(sessionId, message), 30000);
       const { reply, components } = response;
 
       if (components && Array.isArray(components)) {

@@ -80,7 +80,7 @@ export const OrderComplete = (props: OrderCompleteProps) => {
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">할인</span>
+                    <span className="text-slate-500">프로모션/쿠폰 할인</span>
                     <span className="font-medium text-red-500">
                       -{discount.toLocaleString()}원
                     </span>
