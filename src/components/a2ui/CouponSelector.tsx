@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Ticket, Check, Clock } from "lucide-react";
 import { useUIStore } from '@/store/uiStore';
 
-interface Coupon {
+export interface Coupon {
   couponId: string;
   title: string;
   discountType: "rate" | "amount";
@@ -31,10 +31,12 @@ export const CouponSelector = (props: CouponSelectorProps) => {
 
   const handleSelect = (coupon: Coupon) => {
   if (!coupon.isApplicable) return;
-  const newId = selected === coupon.couponId ? null : coupon.couponId;
+  const isDeselecting = selected === coupon.couponId;
+  const newId = isDeselecting ? null : coupon.couponId;
   setSelected(newId);
-  useUIStore.getState().setSelectedCouponId(newId);  // ← 이 줄 추가
- };
+  useUIStore.getState().setSelectedCouponId(newId);
+  useUIStore.getState().setSelectedCoupon(isDeselecting ? null : coupon);  // 추가
+};
    
   return (
     <motion.div

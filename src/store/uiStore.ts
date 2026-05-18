@@ -1,6 +1,7 @@
 // src/store/uiStore.ts
 import { create } from 'zustand';
 import { A2UIMessage } from '@/components/a2ui/A2UIRenderer';
+import { Coupon } from '@/components/a2ui/CouponSelector';
 
 interface UIStore {
   overrideMessages: A2UIMessage[] | null;
@@ -12,8 +13,11 @@ interface UIStore {
 
   // 쿠폰
   selectedCouponId: string | null;
+  selectedCoupon: Coupon | null;           // 추가
   setSelectedCouponId: (id: string | null) => void;
+  setSelectedCoupon: (coupon: Coupon | null) => void;  // 추가
 }
+
 
 export const useUIStore = create<UIStore>((set) => ({
   overrideMessages: null,
@@ -25,4 +29,7 @@ export const useUIStore = create<UIStore>((set) => ({
 
   selectedCouponId: null,
   setSelectedCouponId: (id) => set({ selectedCouponId: id }),
+
+  selectedCoupon: null,
+  setSelectedCoupon: (coupon) => set({ selectedCoupon: coupon }),
 }));

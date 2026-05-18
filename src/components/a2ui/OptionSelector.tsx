@@ -9,6 +9,7 @@ import { useCartStore } from "@/store/cartStore";
 import { setOptionsData } from "@/data/menuData";
 import { useSessionStore } from "@/store/sessionStore";
 import { useUIStore } from "@/store/uiStore";
+import { useToastStore } from "@/store/toastStore";
 
 export interface OptionSelectorProps {
   menuId: string;
@@ -16,43 +17,56 @@ export interface OptionSelectorProps {
   menuPrice: number;
   setPrice: number;
   image?: string;
-  initialStep?: Step;        // 추가
-  preSelectedSide?: string;  // 추가
+  initialStep?: Step; // 추가
+  preSelectedSide?: string; // 추가
   preSelectedDrink?: string; // 추가
 }
 
 type Step = "side" | "drink" | "confirm";
 
 export const OptionSelector = (props: OptionSelectorProps) => {
-  const { menuId, menuName, menuPrice = 0, setPrice = 0, initialStep, preSelectedSide, preSelectedDrink } = props;
+  const {
+    menuId,
+    menuName,
+    menuPrice = 0,
+    setPrice = 0,
+    initialStep,
+    preSelectedSide,
+    preSelectedDrink,
+  } = props;
   const addItem = useCartStore((state) => state.addItem);
-  const sessionId = useSessionStore((s) => s.sessionId);  
-  
-  const goHome = useUIStore((s) => s.goHome); 
+  const sessionId = useSessionStore((s) => s.sessionId);
+  const showToast = useToastStore((s) => s.showToast);
+
+  const goHome = useUIStore((s) => s.goHome);
 
   const [step, setStep] = useState<Step>(initialStep ?? "side");
   const [selectedSide, setSelectedSide] = useState<string | null>(
     preSelectedSide
-      ? setOptionsData.sides.find(s => s.name === preSelectedSide)?.menuId ?? null
-      : null
+      ? (setOptionsData.sides.find((s) => s.name === preSelectedSide)?.menuId ??
+          null)
+      : null,
   );
   const [selectedDrink, setSelectedDrink] = useState<string | null>(
     preSelectedDrink
-      ? setOptionsData.drinks.find(d => d.name === preSelectedDrink)?.menuId ?? null
-      : null
+      ? (setOptionsData.drinks.find((d) => d.name === preSelectedDrink)
+          ?.menuId ?? null)
+      : null,
   );
   const [selectedDrinkSize, setSelectedDrinkSize] = useState<"R" | "L">("R");
 
-  const sidePriceDiff = setOptionsData.sides.find((s) => s.menuId === selectedSide)?.priceDiff ?? 0;
+  const sidePriceDiff =
+    setOptionsData.sides.find((s) => s.menuId === selectedSide)?.priceDiff ?? 0;
   const selectedDrinkItem = setOptionsData.drinks.find(
-    (d) => d.menuId === selectedDrink && d.size === selectedDrinkSize
+    (d) => d.menuId === selectedDrink && d.size === selectedDrinkSize,
   );
   const drinkPriceDiff = selectedDrinkItem?.priceDiff ?? 0;
 
   const finalPrice = setPrice + sidePriceDiff + drinkPriceDiff;
 
   const handleConfirm = () => {
-    const sideName = setOptionsData.sides.find((s) => s.menuId === selectedSide)?.name ?? "";
+    const sideName =
+      setOptionsData.sides.find((s) => s.menuId === selectedSide)?.name ?? "";
     const drinkName = selectedDrinkItem?.name ?? "";
 
     addItem(
@@ -68,8 +82,10 @@ export const OptionSelector = (props: OptionSelectorProps) => {
         selectedDrink: drinkName,
         drinkSize: selectedDrinkSize,
       },
-      sessionId
+      sessionId,
     );
+
+    showToast(`${menuName} 세트를 장바구니에 담았습니다.`);
 
     goHome();
   };
@@ -85,7 +101,10 @@ export const OptionSelector = (props: OptionSelectorProps) => {
         // 🚀 2. 모달 내부에 h-fit과 여백을 주어 자연스럽게 늘어나게 합니다.
         className="bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 w-full max-w-[480px] flex flex-col h-fit relative my-auto"
       >
-        <button onClick={goHome} className="absolute top-6 right-6 p-1.5 rounded-full hover:bg-slate-100 text-slate-400">
+        <button
+          onClick={goHome}
+          className="absolute top-6 right-6 p-1.5 rounded-full hover:bg-slate-100 text-slate-400"
+        >
           <X size={22} />
         </button>
 
@@ -100,7 +119,9 @@ export const OptionSelector = (props: OptionSelectorProps) => {
             </button>
           )}
           <div className="flex-1 text-center">
-            <h3 className="text-2xl font-black text-slate-900 leading-tight">{menuName} 세트 구성</h3>
+            <h3 className="text-2xl font-black text-slate-900 leading-tight">
+              {menuName} 세트 구성
+            </h3>
             <p className="text-base text-orange-600 font-bold mt-1">
               {step === "side" && "Step 1: 사이드 메뉴 선택"}
               {step === "drink" && "Step 2: 음료 메뉴 선택"}
@@ -113,13 +134,21 @@ export const OptionSelector = (props: OptionSelectorProps) => {
         <div className="flex gap-3 mb-8">
           {(["side", "drink", "confirm"] as Step[]).map((s, i) => (
             <div key={s} className="flex-1 flex flex-col items-center gap-1.5">
-              <div className={`h-2.5 w-full rounded-full transition-colors ${
-                  (["side", "drink", "confirm"] as Step[]).indexOf(step) >= i ? "bg-orange-500" : "bg-slate-200"
-              }`} />
-              <span className={`text-xs font-bold ${
-                  (["side", "drink", "confirm"] as Step[]).indexOf(step) >= i ? "text-orange-600" : "text-slate-400"
-              }`}>
-                {s === 'side' ? '사이드' : s === 'drink' ? '음료' : '확인'}
+              <div
+                className={`h-2.5 w-full rounded-full transition-colors ${
+                  (["side", "drink", "confirm"] as Step[]).indexOf(step) >= i
+                    ? "bg-orange-500"
+                    : "bg-slate-200"
+                }`}
+              />
+              <span
+                className={`text-xs font-bold ${
+                  (["side", "drink", "confirm"] as Step[]).indexOf(step) >= i
+                    ? "text-orange-600"
+                    : "text-slate-400"
+                }`}
+              >
+                {s === "side" ? "사이드" : s === "drink" ? "음료" : "확인"}
               </span>
             </div>
           ))}
@@ -135,66 +164,126 @@ export const OptionSelector = (props: OptionSelectorProps) => {
               exit={{ opacity: 0, x: -20 }}
               className="grid grid-cols-2 gap-4 h-[300px] overflow-y-auto pr-2 scrollbar-hide"
             >
-              {(step === "side" ? setOptionsData.sides : uniqueDrinks).map((item: any) => (
-                <button
-                  key={item.menuId}
-                  onClick={() => {
-                    step === "side" ? setSelectedSide(item.menuId) : setSelectedDrink(item.menuId);
-                    if (step === "drink") setSelectedDrinkSize("R"); // 음료 선택 시 R로 초기화
-                    setStep(step === "side" ? "drink" : "confirm");
-                  }}
-                  className={`flex flex-col items-center justify-center p-5 rounded-2xl border-4 transition-all text-center relative aspect-[5/4] ${
-                    (step === "side" ? selectedSide : selectedDrink) === item.menuId
-                      ? "border-orange-500 bg-orange-50 shadow-inner"
-                      : "border-slate-100 hover:border-slate-200 bg-white shadow-sm"
-                  }`}
-                >
-                  {/* 이미지 Placeholder (나중에 진짜 사진 넣을 자리) */}
-                  <div className="w-16 h-16 bg-slate-100 rounded-full mb-3 flex items-center justify-center text-slate-300 text-xs">사진</div>
-                  
-                  <span className="font-bold text-slate-800 text-lg leading-tight mb-1">{item.name}</span>
-                  {item.priceDiff > 0 && (
-                    <span className="text-sm text-orange-600 font-black">
-                      +{item.priceDiff.toLocaleString()}원
+              {(step === "side" ? setOptionsData.sides : uniqueDrinks).map(
+                (item: any) => (
+                  <button
+                    key={item.menuId}
+                    onClick={() => {
+                      step === "side"
+                        ? setSelectedSide(item.menuId)
+                        : setSelectedDrink(item.menuId);
+                      if (step === "drink") setSelectedDrinkSize("R"); // 음료 선택 시 R로 초기화
+                      setStep(step === "side" ? "drink" : "confirm");
+                    }}
+                    className={`flex flex-col items-center justify-center p-5 rounded-2xl border-4 transition-all text-center relative aspect-[5/4] ${
+                      (step === "side" ? selectedSide : selectedDrink) ===
+                      item.menuId
+                        ? "border-orange-500 bg-orange-50 shadow-inner"
+                        : "border-slate-100 hover:border-slate-200 bg-white shadow-sm"
+                    }`}
+                  >
+                    {/* 이미지 Placeholder (나중에 진짜 사진 넣을 자리) */}
+                    <div className="w-16 h-16 bg-slate-100 rounded-full mb-3 flex items-center justify-center text-slate-300 text-xs">
+                      사진
+                    </div>
+
+                    <span className="font-bold text-slate-800 text-lg leading-tight mb-1">
+                      {item.name}
                     </span>
-                  )}
-                  {item.priceDiff === 0 && (
-                    <span className="text-sm text-slate-400 font-bold">추가금 없음</span>
-                  )}
-                   {(step === "side" ? selectedSide : selectedDrink) === item.menuId && (
-                     <div className="absolute top-3 right-3 bg-orange-500 text-white rounded-full p-1"><Check size={16}/></div>
-                   )}
-                </button>
-              ))}
+                    {item.priceDiff > 0 && (
+                      <span className="text-sm text-orange-600 font-black">
+                        +{item.priceDiff.toLocaleString()}원
+                      </span>
+                    )}
+                    {item.priceDiff === 0 && (
+                      <span className="text-sm text-slate-400 font-bold">
+                        추가금 없음
+                      </span>
+                    )}
+                    {(step === "side" ? selectedSide : selectedDrink) ===
+                      item.menuId && (
+                      <div className="absolute top-3 right-3 bg-orange-500 text-white rounded-full p-1">
+                        <Check size={16} />
+                      </div>
+                    )}
+                  </button>
+                ),
+              )}
             </motion.div>
           )}
 
           {/* Step 3: 확인 (더 깔끔하게 정리) */}
           {step === "confirm" && (
-            <motion.div key="confirm" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-6">
+            <motion.div
+              key="confirm"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex flex-col gap-6"
+            >
               {/* 음료 사이즈 토글 (키우고 디자인 개선) */}
               <div className="flex items-center justify-between p-4 bg-slate-100 rounded-xl shadow-inner">
-                <span className="text-base font-bold text-slate-700">음료 L사이즈로 업그레이드</span>
+                <span className="text-base font-bold text-slate-700">
+                  음료 L사이즈로 업그레이드
+                </span>
                 <button
-                  onClick={() => setSelectedDrinkSize((prev) => (prev === "R" ? "L" : "R"))}
+                  onClick={() =>
+                    setSelectedDrinkSize((prev) => (prev === "R" ? "L" : "R"))
+                  }
                   className={`w-14 h-8 rounded-full transition-colors relative flex items-center ${selectedDrinkSize === "L" ? "bg-orange-500" : "bg-slate-300"}`}
                 >
-                  <div className={`w-6 h-6 bg-white rounded-full absolute transition-transform ${selectedDrinkSize === "L" ? "translate-x-7" : "translate-x-1"}`} />
+                  <div
+                    className={`w-6 h-6 bg-white rounded-full absolute transition-transform ${selectedDrinkSize === "L" ? "translate-x-7" : "translate-x-1"}`}
+                  />
                 </button>
               </div>
 
               {/* 선택 요약 카드 */}
               <div className="bg-slate-50 border border-slate-100 rounded-3xl p-6 flex flex-col gap-3 shadow-md">
-                <div className="flex justify-between items-baseline"><span className="text-base text-slate-500 font-medium">메뉴</span><span className="text-lg font-black text-slate-900">{menuName} 세트</span></div>
-                <div className="border-t border-slate-100 my-1"/>
-                <div className="flex justify-between items-baseline"><span className="text-base text-slate-500 font-medium">사이드</span><span className="text-base font-bold text-slate-800">{setOptionsData.sides.find((s) => s.menuId === selectedSide)?.name ?? "-"}</span></div>
-                <div className="flex justify-between items-baseline"><span className="text-base text-slate-500 font-medium">음료</span><span className="text-base font-bold text-slate-800">{setOptionsData.drinks.find((d) => d.menuId === selectedDrink)?.name ?? "-"}{" "}({selectedDrinkSize})</span></div>
+                <div className="flex justify-between items-baseline">
+                  <span className="text-base text-slate-500 font-medium">
+                    메뉴
+                  </span>
+                  <span className="text-lg font-black text-slate-900">
+                    {menuName} 세트
+                  </span>
+                </div>
+                <div className="border-t border-slate-100 my-1" />
+                <div className="flex justify-between items-baseline">
+                  <span className="text-base text-slate-500 font-medium">
+                    사이드
+                  </span>
+                  <span className="text-base font-bold text-slate-800">
+                    {setOptionsData.sides.find((s) => s.menuId === selectedSide)
+                      ?.name ?? "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="text-base text-slate-500 font-medium">
+                    음료
+                  </span>
+                  <span className="text-base font-bold text-slate-800">
+                    {setOptionsData.drinks.find(
+                      (d) => d.menuId === selectedDrink,
+                    )?.name ?? "-"}{" "}
+                    ({selectedDrinkSize})
+                  </span>
+                </div>
                 <div className="border-t-2 border-dashed border-slate-200 my-2" />
-                <div className="flex justify-between items-end"><span className="font-black text-xl text-slate-900">최종 세트 가격</span><span className="text-3xl font-black text-orange-600">{finalPrice.toLocaleString()}원</span></div>
+                <div className="flex justify-between items-end">
+                  <span className="font-black text-xl text-slate-900">
+                    최종 세트 가격
+                  </span>
+                  <span className="text-3xl font-black text-orange-600">
+                    {finalPrice.toLocaleString()}원
+                  </span>
+                </div>
               </div>
 
               {/* 담기 버튼 (크고 강조되게) */}
-              <button onClick={handleConfirm} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xl hover:bg-slate-800 active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-3">
+              <button
+                onClick={handleConfirm}
+                className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xl hover:bg-slate-800 active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-3"
+              >
                 <ShoppingBag size={24} /> 장바구니에 담기
               </button>
             </motion.div>
