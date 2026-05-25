@@ -4,7 +4,7 @@ from typing import Any
 
 import httpx
 
-BACKEND_BASE = "http://localhost:8000"
+BACKEND_BASE = "http://127.0.0.1:8000"
 
 logger = logging.getLogger(__name__)
 _backend_client = httpx.AsyncClient(timeout=10.0)

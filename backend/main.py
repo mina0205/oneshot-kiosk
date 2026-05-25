@@ -1,9 +1,29 @@
+from contextlib import asynccontextmanager
+import asyncio
+import httpx
 from dotenv import load_dotenv; load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import menus, set_options, cart, orders, promotions, coupons, agent
 
-app = FastAPI(title="OneShot Kiosk API", version="0.1.0")
+
+async def _warmup_server():
+    """Windows ProactorEventLoop 첫 번째 TCP 연결 지연(~2s)을 서버 시작 시점에 소비."""
+    await asyncio.sleep(1.0)
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as c:
+            await c.get("http://localhost:8000/")
+    except Exception:
+        pass
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    asyncio.create_task(_warmup_server())
+    yield
+
+
+app = FastAPI(title="OneShot Kiosk API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
