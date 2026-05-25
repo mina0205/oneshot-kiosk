@@ -1,4 +1,4 @@
-// [Cell 3]: src/app/page.tsx
+// [Cell 1]: src/app/page.tsx (Sticky Header 및 레이아웃 최적화 적용)
 
 "use client";
 
@@ -52,7 +52,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 🚀 로컬 상태 제거 및 전역 상태(useUIStore) 직접 연동
   const isHighContrast = useUIStore((s) => s.isHighContrast);
   const fontSize = useUIStore((s) => s.fontSize);
 
@@ -195,66 +194,51 @@ export default function HomePage() {
           </button>
         </div>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 pb-24 scroll-smooth">
-          <header className="mb-8 text-center">
-            <div className="inline-flex items-center gap-2 mb-4 mt-2">
-              <div className="w-10 h-10 bg-lotteria-red rounded-full flex items-center justify-center">
-                <span className="text-white font-black text-lg">L</span>
+        <main className="flex-1 overflow-y-auto scroll-smooth relative">
+          
+          {/* 🚀 핵심 수정: Sticky Header 영역 */}
+          <div className={`sticky top-0 z-30 pt-4 px-4 sm:pt-6 sm:px-6 pb-4 border-b transition-colors duration-300 ${
+            isHighContrast ? "bg-black border-yellow-400/30" : "bg-lotteria-cream border-transparent"
+          }`}>
+            <header className="mb-4 text-center">
+              <div className="inline-flex items-center gap-2 mb-4 mt-2">
+                <div className="w-10 h-10 bg-lotteria-red rounded-full flex items-center justify-center">
+                  <span className="text-white font-black text-lg">L</span>
+                </div>
+                <h1 className="text-3xl font-black text-lotteria-red">
+                  LOTTERIA
+                </h1>
               </div>
-              <h1 className="text-3xl font-black text-lotteria-red">
-                LOTTERIA
-              </h1>
-            </div>
-            <p className="text-sm text-slate-500 -mt-2 mb-4">OneShot Kiosk</p>
+              <p className="text-sm text-slate-500 -mt-2 mb-4">OneShot Kiosk</p>
 
-            <div className="flex justify-center gap-2 mb-4">
-              <button
-                onClick={() => handleSend("현재 진행 중인 프로모션 보여줘")}
-                disabled={loading}
-                className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all shadow-sm"
-              >
-                🏷️ 프로모션
-              </button>
-              <button
-                onClick={() => handleSend("쿠폰 보여줘")}
-                disabled={loading}
-                className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all shadow-sm"
-              >
-                🎟️ 쿠폰
-              </button>
-              <button
-                onClick={() => handleSend("장바구니 보여줘")}
-                disabled={loading}
-                className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-red text-white rounded-full text-sm font-bold hover:bg-lotteria-red-dark active:scale-95 transition-all shadow-sm"
-              >
-                🛒 장바구니
-              </button>
-            </div>
-          </header>
-
-          {error && (
-            <div className="mx-2 mb-3 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold text-center border border-red-200">
-              {error}
-            </div>
-          )}
-
-          {overrideMessages ? (
-            <div className="mt-4">
-              <A2UIRenderer messages={overrideMessages} />
-            </div>
-          ) : agentMessages.length > 0 ? (
-            <div className="mt-4">
-              <button
-                onClick={() => setAgentMessages([])}
-                className="mb-3 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all"
-              >
-                ← 메뉴로 돌아가기
-              </button>
-              <A2UIRenderer messages={agentMessages} />
-            </div>
-          ) : (
-            <>
               <div className="flex justify-center gap-2 mb-4">
+                <button
+                  onClick={() => handleSend("현재 진행 중인 프로모션 보여줘")}
+                  disabled={loading}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all shadow-sm"
+                >
+                  🏷️ 프로모션
+                </button>
+                <button
+                  onClick={() => handleSend("쿠폰 보여줘")}
+                  disabled={loading}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all shadow-sm"
+                >
+                  🎟️ 쿠폰
+                </button>
+                <button
+                  onClick={() => handleSend("장바구니 보여줘")}
+                  disabled={loading}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-red text-white rounded-full text-sm font-bold hover:bg-lotteria-red-dark active:scale-95 transition-all shadow-sm"
+                >
+                  🛒 장바구니
+                </button>
+              </div>
+            </header>
+
+            {/* 카테고리 버튼 (메뉴 화면일 때만 표시) */}
+            {!overrideMessages && agentMessages.length === 0 && (
+              <div className="flex justify-center gap-2">
                 {CATEGORIES.map((cat) => (
                   <button
                     key={cat.key}
@@ -269,7 +253,33 @@ export default function HomePage() {
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 px-2 pb-4">
+            )}
+          </div>
+
+          {/* 하단 콘텐츠 영역 */}
+          <div className="p-4 sm:p-6 pb-24">
+            {error && (
+              <div className="mb-3 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold text-center border border-red-200">
+                {error}
+              </div>
+            )}
+
+            {overrideMessages ? (
+              <div className="mt-4">
+                <A2UIRenderer messages={overrideMessages} />
+              </div>
+            ) : agentMessages.length > 0 ? (
+              <div className="mt-4">
+                <button
+                  onClick={() => setAgentMessages([])}
+                  className="mb-3 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all"
+                >
+                  ← 메뉴로 돌아가기
+                </button>
+                <A2UIRenderer messages={agentMessages} />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {filteredMenus.length > 0 ? (
                   <A2UIRenderer messages={filteredMenus} />
                 ) : (
@@ -278,8 +288,8 @@ export default function HomePage() {
                   </p>
                 )}
               </div>
-            </>
-          )}
+            )}
+          </div>
         </main>
 
         <div className="sticky bottom-0 left-0 right-0 z-40 bg-lotteria-cream">
