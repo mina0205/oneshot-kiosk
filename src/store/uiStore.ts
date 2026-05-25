@@ -1,4 +1,5 @@
-// src/store/uiStore.ts
+// [Cell 1]: src/store/uiStore.ts
+
 import { create } from 'zustand';
 import { A2UIMessage } from '@/components/a2ui/A2UIRenderer';
 import { Coupon } from '@/components/a2ui/CouponSelector';
@@ -11,13 +12,16 @@ interface UIStore {
   goHome: () => void;
   resetHomeTrigger: () => void;
 
-  // 쿠폰
+  // 쿠폰 로직 유지
   selectedCouponId: string | null;
-  selectedCoupon: Coupon | null;           // 추가
+  selectedCoupon: Coupon | null;
   setSelectedCouponId: (id: string | null) => void;
-  setSelectedCoupon: (coupon: Coupon | null) => void;  // 추가
-}
+  setSelectedCoupon: (coupon: Coupon | null) => void;
 
+  // 🚀 시니어 접근성을 위한 UI 전역 상태 추가
+  isHighContrast: boolean;
+  fontSize: "normal" | "large";
+}
 
 export const useUIStore = create<UIStore>((set) => ({
   overrideMessages: null,
@@ -32,4 +36,8 @@ export const useUIStore = create<UIStore>((set) => ({
 
   selectedCoupon: null,
   setSelectedCoupon: (coupon) => set({ selectedCoupon: coupon }),
+
+  // 🚀 접근성 초기값 설정
+  isHighContrast: false,
+  fontSize: "normal",
 }));
