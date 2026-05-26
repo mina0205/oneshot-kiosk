@@ -77,7 +77,7 @@ export const ChatInput = ({ onSend, loading = false }: ChatInputProps) => {
 
           if (data.text && data.text.trim()) {
             console.log("인식된 텍스트:", data.text);
-            onSend(data.text.trim());
+            setMessage(data.text.trim());
           } else {
             console.warn("인식된 텍스트 없음");
           }
