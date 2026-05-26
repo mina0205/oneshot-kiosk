@@ -1,46 +1,140 @@
-### 개요
-S-01(단체주문)부터 S-05(예산 추천)까지 5개 시나리오를 지원하는 AI 에이전트 구현.
-`google-genai` SDK를 사용해 Gemini 2.0 Flash 모델과 연동하며, 자연어 입력을 A2UI JSON 응답으로 변환하는 전체 파이프라인 초안을 6개 파일로 분리하여 구성.
+# OneShot — A2UI 기반 차세대 패스트푸드 키오스크
 
-파일 구성
+> 2026 한국정보기술학회 추계 종합학술대회 발표 프로젝트  
+> "A2UI 기반 Generative UI를 활용한 차세대 패스트푸드 키오스크 시스템"
 
-- `prompts.py` / `tools.py` / `tool_executor.py` / `session.py` / `parser.py` / `agent.py`
+## 개요
 
----
+국내 키오스크 보급 대수는 2023년 기준 53만 대를 넘어섰지만, 65세 이상 고령층의 키오스크 독립 이용 비율은 **17.9%** 에 불과합니다. 기존 키오스크의 복잡한 다단계 메뉴 탐색 구조가 핵심 원인입니다.
 
-### Feature
+**OneShot** 은 Google이 공개한 A2UI(Agent-to-User Interface) 프로토콜을 적용하여, 사용자가 자연어 한 문장으로 주문을 완료할 수 있는 Generative UI 키오스크 웹 애플리케이션입니다. 기존 키오스크에서 12단계 이상 필요하던 단체 주문을 1~2단계로 줄이고, 기존 구조에서 불가능했던 칼로리 필터링·알레르기 제외·예산 조합 추천 등을 자연어만으로 처리합니다.
 
-- **AI 에이전트 파이프라인 구현** (`agent.py`)
-    - `process_message(session_id, user_message)` 함수가 단일 진입점이며 Tool 루프 전체를 담당 →  FastAPI 라우터와 연동하여 호출
-    - Gemini Tool call → Tool 실행 → 결과를 히스토리에 추가 → 다시 Gemini 호출
-    - 재호출 루프를 최대 10회 반복하는 자동 처리 구현하여 무한루프 방지
-    - `session_id` 자동 주입으로 Gemini가 session_id를 누락하더라도 장바구니 API 정상 호출 보장
-    - `OrderComplete` 컴포넌트가 포함된 경우 세션을 초기화하는 응답 후처리 추가
-- **시스템 프롬프트 설계** (`prompts.py`)
-    - 역할 정의, Tool 호출 판단 기준, A2UI JSON 출력 형식, 컴포넌트 props 스키마, 시나리오별(S-01~S-05) 컴포넌트 조합 가이드 포함
-    - 지원 컴포넌트: `MenuCard`, `OptionSelector`, `Cart`, `PaymentSummary`, `AllergyBanner`, `ComboRecommendation`
-- **Tool 선언 구현** (`tools.py`)
-    - Gemini Function Calling 형식으로 7개 Tool 선언
-    - 각 Tool의 `description`에 호출 판단 기준을 명시하여 Gemini가 스스로 Tool을 선택하도록 설계
-    - 지원 Tool: `get_all_menus`, `search_menus_by_condition`, `get_set_options`, `get_cart`, `add_to_cart`, `update_cart_item`, `delete_cart_item`
-    - Tool 함수 이름이 확정되면 그에 맞게 수정 예정
-- **BE API 연동 구현** (`tool_executor.py`)
-    - Gemini가 지시한 Tool 이름을 실제 BE REST API HTTP 호출로 매핑
-    - `httpx` 비동기 클라이언트 사용, 타임아웃 10초 설정
-    - HTTPStatusError 및 일반 예외 개별 처리, 에러 발생 시 Gemini에게 에러 내용 반환
-- **세션/히스토리 관리 구현** (`session.py`)
-    - Gemini 상태없음(stateless) 특성 보완을 위해 인메모리 딕셔너리로 세션별 대화 히스토리 관리
-    - `append_user` 는 사용자 메시지(또는 Tool 결과)/ `append_model` 는 Gemini 모델 응답 → 역할 분리로 히스토리 오염 방지
-- **A2UI JSON 파싱·검증 구현** (`parser.py`)
-    - 응답에서 코드블록 제거 및 JSON 추출 처리
-    - 유효하지 않은 컴포넌트 `type`은 해당 컴포넌트만 제거하고 나머지 응답은 유지
-    - 파싱 실패 시 서버 오류 없이 fallback 응답 반환
+## 주요 기능
 
----
+| 시나리오 | 기존 키오스크 | OneShot |
+|---------|-------------|---------|
+| 단체 주문 | 12단계 이상 | 자연어 1~2단계 |
+| 칼로리 필터 추천 | 불가능 | 자연어 조건 입력 |
+| 주문 중간 수정 | 삭제 후 재주문 (5~6단계) | 변경 요청 1단계 |
+| 알레르기 필터링 | 불가능 | 제한 조건 발화 1단계 |
+| 예산 최적 조합 | 불가능 | 예산·인원 발화 1단계 |
+| 리오더 | 지원 안 됨 | 리오더 요청 1단계 |
+| 메뉴 비교 | 불가능 | 비교 요청 1단계 |
+| 프로모션·쿠폰 | 배너 확인 후 수동 탐색 (4~5단계) | 할인 조회 발화 1단계 |
 
-### Chore
+**논문 이후 추가 구현**
+- **STT (Speech-to-Text)**: OpenAI Whisper API 연동으로 음성 주문 지원. 인식된 텍스트를 입력창에 먼저 표시한 뒤 사용자가 확인 후 전송
+- **Fast Path 최적화**: 쿠폰·프로모션·장바구니·리오더 등 자주 사용되는 시나리오를 규칙 기반으로 즉시 처리하여 LLM 호출 없이 수 ms 내 응답
 
-- 의존성 패키지: `google-genai`, `httpx`, `fastapi`
-    - 의존성 설치:  `pip install google-genai httpx fastapi`
-- 환경 변수: `GOOGLE_API_KEY`
-- 사용 모델: `gemini-2.0-flash`
+## 아키텍처
+
+```
+사용자 자연어 입력 (텍스트 / 음성)
+        │
+        ▼
+  Frontend (Next.js 16 + TypeScript)
+  ├── ChatInput        텍스트 입력 + STT 음성 입력
+  ├── A2UIRenderer     선언적 JSON → UI 컴포넌트 렌더링
+  └── Zustand          장바구니 · 세션 · UI 상태 관리
+        │ POST /agent/chat
+        ▼
+  Backend — AI Agent Layer (FastAPI + Python)
+  ├── agent.py         에이전트 오케스트레이터
+  │   ├── Fast Path    규칙 기반 즉시 응답 (LLM 호출 없음, ~1ms)
+  │   └── Gemini Loop  복잡한 의도 처리 (최대 10라운드 Tool 루프)
+  ├── prompts.py       시스템 프롬프트 · 컴포넌트 스키마
+  ├── tools.py         7개 Tool 선언 (Gemini Function Calling)
+  ├── tool_executor.py Tool → REST API HTTP 호출
+  ├── session.py       멀티턴 대화 히스토리 (인메모리)
+  └── parser.py        A2UI JSON 구조 검증 · fallback 처리
+        │ HTTP
+        ▼
+  Backend — REST API Layer (14개 엔드포인트)
+  ├── /menus           전체 조회 · 조건 검색 · 단일 상세
+  ├── /set_options     사이드 · 음료 · 토핑 옵션
+  ├── /cart            추가 · 수정 · 삭제 · 비우기
+  ├── /orders          주문 생성 · 이력 · 리오더
+  ├── /promotions      프로모션 조회
+  └── /coupons         쿠폰 조회
+        │
+        ▼
+  Data Layer (JSON 파일)
+```
+
+### A2UI 컴포넌트 카탈로그
+
+에이전트 응답으로 생성된 선언적 JSON을 `A2UIRenderer`가 읽어 아래 12종 컴포넌트 중 적합한 것을 화면에 렌더링합니다.
+
+| 컴포넌트 | 역할 |
+|---------|------|
+| `MenuCard` | 메뉴 정보 표시 |
+| `Cart` | 장바구니 |
+| `PaymentSummary` | 결제 요약 |
+| `OptionSelector` | 세트 옵션 선택 |
+| `ComparisonTable` | 메뉴 비교 |
+| `ComboRecommendation` | 예산 기반 조합 추천 |
+| `CustomBuilder` | 재료별 커스터마이징 |
+| `AllergyBanner` | 알레르기 경고 |
+| `PromotionBanner` | 프로모션 안내 |
+| `CouponSelector` | 쿠폰 선택 |
+| `OrderHistory` | 주문 이력 |
+| `OrderComplete` | 주문 완료 |
+
+## 기술 스택
+
+**Frontend**
+- Next.js 16.2 / React 19 / TypeScript
+- Zustand (상태 관리)
+- Tailwind CSS v4 / Framer Motion / Lucide React
+- @a2ui-sdk/react
+
+**Backend**
+- FastAPI / Python
+- Google Gemini 2.5 Flash (`google-genai`) — 자연어 의도 파악 · A2UI JSON 생성
+- OpenAI Whisper (`whisper-1`) — STT 음성 인식
+
+## 시작하기
+
+### 사전 요구사항
+
+- Node.js 20+
+- Python 3.11+
+- Google Gemini API 키
+- OpenAI API 키 (STT 사용 시)
+
+### 환경변수 설정
+
+**`backend/.env`**
+```env
+GEMINI_API_KEY=your_gemini_api_key
+OPENAI_API_KEY=your_openai_api_key
+```
+
+**`.env.local`** (프로젝트 루트)
+```env
+OPENAI_API_KEY=your_openai_api_key
+```
+
+### 실행
+
+**Backend**
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+**Frontend**
+```bash
+npm install
+npm run dev
+# http://localhost:3000
+```
+
+## 팀
+
+경기대학교 캡스톤디자인 프로젝트
+
+김민아 · 김상현 · 권소윤 · 김연호 · 염지은 · 최지우 · 염수민  
+지도교수: 이재흥 (AI컴퓨터공학부)
+
