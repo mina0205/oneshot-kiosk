@@ -55,7 +55,7 @@ export const PromotionBanner = (props: PromotionBannerProps) => {
             <div className="text-right shrink-0 ml-4">
               <span className="text-xl font-black text-red-500">
                 {promo.discountType === "rate"
-                  ? `${promo.discountValue}%`
+                  ? `${Math.round(promo.discountValue * 100)}%`
                   : `${promo.discountValue.toLocaleString()}원`}
               </span>
               <p className="text-xs text-slate-400">
