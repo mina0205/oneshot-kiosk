@@ -1,10 +1,10 @@
-// [Cell 1]: src/app/page.tsx (Sticky Header 및 레이아웃 최적화 적용)
-
+// src/app/page.tsx
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { ZoomIn, ZoomOut, Contrast, RotateCcw } from "lucide-react";
 import { A2UIRenderer, A2UIMessage } from "@/components/a2ui/A2UIRenderer";
+import { OptionSelector } from "@/components/a2ui/OptionSelector";
 import { ChatInput } from "@/components/ui/ChatInput";
 import { menuData } from "@/data/menuData";
 import { fetchMenus, sendChat } from "@/lib/api";
@@ -32,7 +32,7 @@ const fetchWithRetry = async <T,>(
       return await fn();
     } catch (err) {
       if (i === retries - 1) throw err;
-      console.warn(`[BE 연결 지연] ${i + 1}번째 재시도 중...`);
+      console.warn(`[BE 연결 재시도 ${i + 1}번째 중..`);
       await new Promise((res) => setTimeout(res, delay));
     }
   }
@@ -44,6 +44,23 @@ const localMenuMessages: A2UIMessage[] = menuData.map((menu, index) => ({
   type: "MenuCard",
   props: menu,
 }));
+
+// ✅ 세트 옵션 모달 전역 컴포넌트
+const SetMenuModal = () => {
+  const activeSetMenu = useUIStore((s) => s.activeSetMenu);
+
+  if (!activeSetMenu) return null;
+
+  return (
+    <OptionSelector
+      menuId={activeSetMenu.menuId}
+      menuName={activeSetMenu.menuName}
+      menuPrice={activeSetMenu.menuPrice}
+      setPrice={activeSetMenu.setPrice}
+      image={activeSetMenu.image}
+    />
+  );
+};
 
 export default function HomePage() {
   const sessionId = useSessionStore((s) => s.sessionId);
@@ -59,16 +76,12 @@ export default function HomePage() {
   const isHomeRequested = useUIStore((s) => s.isHomeRequested);
   const resetHomeTrigger = useUIStore((s) => s.resetHomeTrigger);
 
-  const [apiMenuMessages, setApiMenuMessages] = useState<A2UIMessage[] | null>(
-    null,
-  );
-  const [apiError, setApiError] = useState<string | null>(null);
-
+  const [apiMenuMessages, setApiMenuMessages] = useState<A2UIMessage[] | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("burger");
 
   const CATEGORIES = [
     { key: "burger", label: "🍔 버거" },
-    { key: "side", label: "🍗 사이드" },
+    { key: "side", label: "🍟 사이드" },
     { key: "drink", label: "🥤 음료" },
   ];
 
@@ -82,23 +95,19 @@ export default function HomePage() {
       }
       return cat === activeCategory;
     });
-  }, [apiMenuMessages, localMenuMessages, activeCategory]);
+  }, [apiMenuMessages, activeCategory]);
 
   useEffect(() => {
     fetchWithRetry(() => fetchMenus(), 3, 1000)
       .then((menus) => {
-        const messages: A2UIMessage[] = menus.map(
-          (menu: any, index: number) => ({
-            id: `api-menu-${index}`,
-            type: "MenuCard",
-            props: menu,
-          }),
-        );
+        const messages: A2UIMessage[] = menus.map((menu: any, index: number) => ({
+          id: `api-menu-${index}`,
+          type: "MenuCard",
+          props: menu,
+        }));
         setApiMenuMessages(messages);
-        setApiError(null);
       })
-      .catch((err) => {
-        setApiError("서버와 연결이 불안정하여 로컬 메뉴로 대체합니다.");
+      .catch(() => {
         setApiMenuMessages(null);
       });
   }, []);
@@ -120,37 +129,38 @@ export default function HomePage() {
 
     try {
       const response = await withTimeout(sendChat(sessionId, message), 30000);
-      const { reply, components } = response;
+      const { components } = response;
 
       if (components && Array.isArray(components)) {
-        const newMessages: A2UIMessage[] = components.map(
-          (comp: any, index: number) => ({
-            id: `agent-${Date.now()}-${index}`,
-            type: comp.type,
-            props: comp,
-          }),
-        );
+        const newMessages: A2UIMessage[] = components.map((comp: any, index: number) => ({
+          id: `agent-${Date.now()}-${index}`,
+          type: comp.type,
+          props: comp,
+        }));
         setAgentMessages(newMessages);
       } else {
         setAgentMessages([]);
       }
     } catch (err: any) {
       if (err.message === "TIMEOUT") {
-        setError("⚠️ AI 응답이 지연되고 있습니다. 다시 질문해주세요.");
+        setError("AI 응답이 지연되고 있습니다. 다시 시도해주세요.");
       } else {
-        setError("⚠️ 서버 연결이 끊어졌습니다.");
+        setError("서버 연결이 끊어졌습니다.");
       }
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ handleSend를 ref로 관리해서 항상 최신 함수 참조 (stale closure 방지)
+  const handleSendRef = useRef(handleSend);
   useEffect(() => {
-    setSendMessage(handleSend);
-  }, [sessionId, allMenuMessages]);
+    handleSendRef.current = handleSend;
+  });
 
-  const baseMessages =
-    agentMessages.length > 0 ? agentMessages : allMenuMessages;
+  useEffect(() => {
+    setSendMessage((msg: string) => handleSendRef.current(msg));
+  }, []);
 
   return (
     <div
@@ -160,6 +170,8 @@ export default function HomePage() {
         className={`w-full max-w-[600px] h-[95vh] max-h-[1200px] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative border-8 transition-colors duration-300 ${isHighContrast ? "bg-black text-white border-yellow-400" : "bg-lotteria-cream text-slate-900 border-lotteria-red"}`}
       >
         <Toast />
+        <SetMenuModal />
+
         <div className="bg-lotteria-red text-white px-6 py-3 flex justify-between items-center z-50 shadow-md">
           <div className="flex gap-4">
             <button
@@ -168,13 +180,9 @@ export default function HomePage() {
               }
               className="flex items-center gap-1.5 hover:text-lotteria-yellow transition-colors active:scale-95"
             >
-              {fontSize === "normal" ? (
-                <ZoomIn size={20} />
-              ) : (
-                <ZoomOut size={20} />
-              )}
+              {fontSize === "normal" ? <ZoomIn size={20} /> : <ZoomOut size={20} />}
               <span className="font-bold">
-                {fontSize === "normal" ? "글자크게" : "기본크기"}
+                {fontSize === "normal" ? "글자크게" : "글자기본"}
               </span>
             </button>
             <button
@@ -195,8 +203,6 @@ export default function HomePage() {
         </div>
 
         <main className="flex-1 overflow-y-auto scroll-smooth relative">
-          
-          {/* 🚀 핵심 수정: Sticky Header 영역 */}
           <div className={`sticky top-0 z-30 pt-4 px-4 sm:pt-6 sm:px-6 pb-4 border-b transition-colors duration-300 ${
             isHighContrast ? "bg-black border-yellow-400/30" : "bg-lotteria-cream border-transparent"
           }`}>
@@ -205,29 +211,27 @@ export default function HomePage() {
                 <div className="w-10 h-10 bg-lotteria-red rounded-full flex items-center justify-center">
                   <span className="text-white font-black text-lg">L</span>
                 </div>
-                <h1 className="text-3xl font-black text-lotteria-red">
-                  LOTTERIA
-                </h1>
+                <h1 className="text-3xl font-black text-lotteria-red">LOTTERIA</h1>
               </div>
               <p className="text-sm text-slate-500 -mt-2 mb-4">OneShot Kiosk</p>
 
               <div className="flex justify-center gap-2 mb-4">
                 <button
-                  onClick={() => handleSend("현재 진행 중인 프로모션 보여줘")}
+                  onClick={() => handleSendRef.current("현재 진행 중인 프로모션 보여줘")}
                   disabled={loading}
                   className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all shadow-sm"
                 >
-                  🏷️ 프로모션
+                  🎉 프로모션
                 </button>
                 <button
-                  onClick={() => handleSend("쿠폰 보여줘")}
+                  onClick={() => handleSendRef.current("쿠폰 보여줘")}
                   disabled={loading}
                   className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-yellow text-lotteria-brown rounded-full text-sm font-bold hover:bg-yellow-300 active:scale-95 transition-all shadow-sm"
                 >
                   🎟️ 쿠폰
                 </button>
                 <button
-                  onClick={() => handleSend("장바구니 보여줘")}
+                  onClick={() => handleSendRef.current("장바구니 보여줘")}
                   disabled={loading}
                   className="flex items-center gap-1.5 px-4 py-2 bg-lotteria-red text-white rounded-full text-sm font-bold hover:bg-lotteria-red-dark active:scale-95 transition-all shadow-sm"
                 >
@@ -236,7 +240,6 @@ export default function HomePage() {
               </div>
             </header>
 
-            {/* 카테고리 버튼 (메뉴 화면일 때만 표시) */}
             {!overrideMessages && agentMessages.length === 0 && (
               <div className="flex justify-center gap-2">
                 {CATEGORIES.map((cat) => (
@@ -256,7 +259,6 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* 하단 콘텐츠 영역 */}
           <div className="p-4 sm:p-6 pb-24">
             {error && (
               <div className="mb-3 px-4 py-3 bg-red-50 text-red-600 rounded-xl text-sm font-bold text-center border border-red-200">
@@ -293,7 +295,8 @@ export default function HomePage() {
         </main>
 
         <div className="sticky bottom-0 left-0 right-0 z-40 bg-lotteria-cream">
-          <ChatInput onSend={handleSend} loading={loading} />
+          {/* ✅ handleSendRef로 항상 최신 함수 전달 */}
+          <ChatInput onSend={(msg) => handleSendRef.current(msg)} loading={loading} />
         </div>
       </div>
     </div>

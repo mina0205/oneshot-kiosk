@@ -1,6 +1,4 @@
 // src/components/a2ui/CartView.tsx
-// 백엔드(BE) 연동 및 주문 완료 화면 전환 로직이 포함된 최종 장바구니 컴포넌트입니다.
-
 "use client";
 
 import React, { useState } from 'react';
@@ -20,7 +18,7 @@ export const CartView = (props: CartProps) => {
   const store = useCartStore();
   const sessionId = useSessionStore((s) => s.sessionId);
   const setOverrideMessages = useUIStore((s) => s.setOverrideMessages);
-  
+
   const selectedCouponId = useUIStore((s) => s.selectedCouponId);
   const selectedCoupon = useUIStore((s) => s.selectedCoupon);
 
@@ -28,9 +26,14 @@ export const CartView = (props: CartProps) => {
 
   const hasBEData = props.items && props.items.length > 0;
 
-  const items = hasBEData ? props.items! : store.items;
-  const totalPrice = hasBEData ? props.totalPrice! : store.totalPrice;
-  const itemCount = hasBEData ? props.itemCount! : store.itemCount;
+  // ✅ 핵심 수정: BE 데이터를 로컬 state로 관리해서 리렌더링 되도록
+  const [localItems, setLocalItems] = useState<any[]>(props.items ? [...props.items] : []);
+  const [localTotal, setLocalTotal] = useState<number>(props.totalPrice || 0);
+  const [localCount, setLocalCount] = useState<number>(props.itemCount || 0);
+
+  const items = hasBEData ? localItems : store.items;
+  const totalPrice = hasBEData ? localTotal : store.totalPrice;
+  const itemCount = hasBEData ? localCount : store.itemCount;
 
   const couponDiscount = (() => {
     if (!selectedCoupon || !totalPrice) return 0;
@@ -48,11 +51,15 @@ export const CartView = (props: CartProps) => {
       await fetch(`${API_BASE_URL}/cart/${sessionId}/items/${cartItemId}`, {
         method: "DELETE",
       });
-      if (props.items) {
-        const idx = props.items.findIndex((i: any) => i.cartItemId === cartItemId);
-        if (idx !== -1) props.items.splice(idx, 1);
-      }
-      store.clearCart();
+      // ✅ splice 대신 setState로 리렌더링 트리거
+      setLocalItems(prev => {
+        const updated = prev.filter((i: any) => i.cartItemId !== cartItemId);
+        const newTotal = updated.reduce((sum: number, i: any) => sum + i.subtotal, 0);
+        const newCount = updated.reduce((sum: number, i: any) => sum + i.quantity, 0);
+        setLocalTotal(newTotal);
+        setLocalCount(newCount);
+        return updated;
+      });
     } catch (err) {
       console.warn("BE 장바구니 삭제 실패:", err);
     }
@@ -71,14 +78,18 @@ export const CartView = (props: CartProps) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ quantity: newQty }),
       });
-      if (props.items) {
-        const item = props.items.find((i: any) => i.cartItemId === cartItemId);
-        if (item) {
-          item.quantity = newQty;
-          item.subtotal = item.unitPrice * newQty;
-        }
-      }
-      store.clearCart();
+      // ✅ 직접 수정 대신 setState로 리렌더링 트리거
+      setLocalItems(prev => {
+        const updated = prev.map((i: any) => {
+          if (i.cartItemId !== cartItemId) return i;
+          return { ...i, quantity: newQty, subtotal: i.unitPrice * newQty };
+        });
+        const newTotal = updated.reduce((sum: number, i: any) => sum + i.subtotal, 0);
+        const newCount = updated.reduce((sum: number, i: any) => sum + i.quantity, 0);
+        setLocalTotal(newTotal);
+        setLocalCount(newCount);
+        return updated;
+      });
     } catch (err) {
       console.warn("BE 수량 변경 실패:", err);
     }
@@ -94,7 +105,6 @@ export const CartView = (props: CartProps) => {
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const couponId = useUIStore.getState().selectedCouponId;
 
-      // ✅ 수정: 백엔드 OrderRequest 모델에 맞게 orderType, couponId만 전송
       const response = await fetch(`${API_BASE_URL}/orders/${sessionId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -140,7 +150,7 @@ export const CartView = (props: CartProps) => {
         <h3 className="text-xl font-bold text-slate-800">장바구니</h3>
         <span className="text-sm text-orange-600 font-bold">총 {itemCount}개 담김</span>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto pr-1">
         {items.length === 0 ? (
           <div className="h-full flex items-center justify-center text-slate-400 font-medium py-12">
@@ -225,10 +235,8 @@ export const CartView = (props: CartProps) => {
         )}
       </div>
 
-      {/* 금액 및 주문 버튼 영역 */}
       <div className="mt-6 pt-4 border-t border-slate-200">
 
-        {/* 쿠폰 적용 배너 */}
         {selectedCouponId && (
           <div className="flex justify-between items-center mb-3 px-1">
             <span className="text-sm text-green-600 font-bold flex items-center gap-1">
@@ -249,7 +257,6 @@ export const CartView = (props: CartProps) => {
           </div>
         )}
 
-        {/* 금액 요약 */}
         <div className="flex flex-col gap-2 mb-4">
           <div className="flex justify-between items-center text-sm">
             <span className="text-slate-500">주문 금액</span>
@@ -288,7 +295,6 @@ export const CartView = (props: CartProps) => {
           ) : "주문하기"}
         </button>
       </div>
-
     </div>
   );
 };

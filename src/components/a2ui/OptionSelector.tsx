@@ -39,6 +39,7 @@ export const OptionSelector = (props: OptionSelectorProps) => {
   const showToast = useToastStore((s) => s.showToast);
 
   const goHome = useUIStore((s) => s.goHome);
+  const closeSetMenu = useUIStore((s) => s.closeSetMenu); 
 
   const [step, setStep] = useState<Step>(initialStep ?? "side");
   const [selectedSide, setSelectedSide] = useState<string | null>(
@@ -65,30 +66,32 @@ export const OptionSelector = (props: OptionSelectorProps) => {
   const finalPrice = setPrice + sidePriceDiff + drinkPriceDiff;
 
   const handleConfirm = () => {
-    const sideName =
-      setOptionsData.sides.find((s) => s.menuId === selectedSide)?.name ?? "";
-    const drinkName = selectedDrinkItem?.name ?? "";
+  const sideName =
+    setOptionsData.sides.find((s) => s.menuId === selectedSide)?.name ?? "";
+  const drinkName = selectedDrinkItem?.name ?? "";
 
-    addItem(
-      {
-        cartItemId: `${menuId}-set-${Date.now()}`,
-        menuId,
-        name: `${menuName} 세트`,
-        isSet: true,
-        quantity: 1,
-        unitPrice: finalPrice,
-        subtotal: finalPrice,
-        selectedSide: sideName,
-        selectedDrink: drinkName,
-        drinkSize: selectedDrinkSize,
-      },
-      sessionId,
-    );
+  addItem(
+    {
+      cartItemId: `${menuId}-set-${Date.now()}`,
+      menuId,
+      name: `${menuName} 세트`,
+      isSet: true,
+      quantity: 1,
+      unitPrice: finalPrice,
+      subtotal: finalPrice,
+      selectedSide: sideName,
+      selectedDrink: drinkName,
+      drinkSize: selectedDrinkSize,
+    },
+    sessionId,
+  );
 
-    showToast(`${menuName} 세트를 장바구니에 담았습니다.`);
+  showToast(`${menuName} 세트를 장바구니에 담았습니다.`);
 
-    goHome();
-  };
+  closeSetMenu(); // ✅ 모달 닫기
+  goHome();       // ✅ 홈으로
+};
+
 
   const uniqueDrinks = setOptionsData.drinks.filter((d) => d.size === "R");
 

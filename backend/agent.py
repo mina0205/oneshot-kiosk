@@ -64,8 +64,11 @@ _WARMUP_CONTENT = types.Content(role="user", parts=[_WARMUP_PART])
 def _get_client():
     global _client
     if _client is None:
-        _client = genai.Client()
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        print(f"[DEBUG] Gemini API Key 로드: {api_key[:10] if api_key else 'None'}...")
+        _client = genai.Client(api_key=api_key)
     return _client
+
 
 
 # ── 분류 키워드 ──────────────────────────────────────────────────────────────

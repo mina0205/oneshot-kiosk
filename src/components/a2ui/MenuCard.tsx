@@ -33,6 +33,7 @@ export const MenuCard = (menu: MenuCardProps) => {
   const isLarge = fontSize === "large";
   
   const isHighContrast = useUIStore((s) => s.isHighContrast);
+  
 
   const handleAddToCart = () => {
     addItem(
@@ -50,12 +51,20 @@ export const MenuCard = (menu: MenuCardProps) => {
     showToast(`${menu.name}을(를) 장바구니에 담았습니다.`);
   };
 
-  const handleSelectSet = () => {
-    if (menu.soldOut || !menu.setPrice) return;
-    if (sendMessage) {
-      sendMessage(`${menu.name} 세트 주문할게`);
-    }
-  };
+  const openSetMenu = useUIStore((s) => s.openSetMenu);
+
+ // 기존 handleSelectSet 지우고 이걸로 교체
+const handleSelectSet = () => {
+  if (menu.soldOut || !menu.setPrice) return;
+  openSetMenu({
+    menuId: menu.menuId,
+    menuName: menu.name,
+    menuPrice: menu.price,
+    setPrice: menu.setPrice,
+    image: menu.imageUrl || menu.image,
+  });
+};
+
 
   return (
     <motion.div
