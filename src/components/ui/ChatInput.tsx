@@ -38,7 +38,11 @@ export const ChatInput = ({ onSend, loading = false }: ChatInputProps) => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       console.log("마이크 접근 성공!");
 
-      const mediaRecorder = new MediaRecorder(stream);
+      // opus 코덱 우선 사용 (Whisper 인식률 향상), 미지원 브라우저는 기본값으로 fallback
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
