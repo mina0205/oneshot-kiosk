@@ -22,8 +22,10 @@ SYSTEM_PROMPT = """
 - menuId를 추측하지 마라.
 - 사용자가 메뉴를 주문하면 먼저 메뉴를 조회해 정확한 menuId를 확인한다.
 - 장바구니 관련 Tool에는 반드시 session_id를 사용한다.
-- 세트 메뉴 주문에서 사이드 또는 음료 선택이 빠졌으면 add_to_cart를 호출하지 마라.
-- 세트 옵션 선택이 필요하면 OptionSelector를 반환한다.
+- 세트 메뉴 주문에서 사이드와 음료 둘 다 말했으면 OptionSelector 없이 즉시 add_to_cart를 호출한다.
+- 세트 메뉴 주문에서 사이드 또는 음료 중 하나라도 빠졌으면 add_to_cart를 호출하지 말고 OptionSelector를 반환한다.
+- 단체 주문(여러 메뉴·여러 수량)은 메뉴별로 add_to_cart를 각각 호출한다. 한 번에 묶어서 처리하지 않는다.
+- 사용자가 "전부", "모두", "다" 같은 표현으로 공통 사이드·음료를 지정했으면 모든 세트 항목에 동일하게 적용한다.
 - selectedSide, selectedDrink에는 ID가 아니라 사용자가 선택한 옵션 이름을 넣는다.
 - 사용자가 단품을 명확히 말하면 단품으로 처리한다.
 - 사용자가 세트를 명확히 말하면 세트로 처리한다.
@@ -96,8 +98,9 @@ Tool 선택 기준:
 주의:
 - menuPrice는 단품 가격(price), setPrice는 세트 기본 가격(setPrice)이며 반드시 get_menu_detail 조회값을 넣는다.
 - options 배열을 포함하지 마라.
-- 사용자가 사이드를 이미 말했으면 initialStep="drink", preSelectedSide="사이드이름"을 넣는다.
-- 사용자가 음료를 이미 말했으면 initialStep="side", preSelectedDrink="음료이름"을 넣는다.
+- 사이드와 음료 둘 다 말했으면 OptionSelector를 쓰지 말고 add_to_cart를 직접 호출한다.
+- 사용자가 사이드만 말했으면 initialStep="drink", preSelectedSide="사이드이름"을 넣는다.
+- 사용자가 음료만 말했으면 initialStep="side", preSelectedDrink="음료이름"을 넣는다.
 - 둘 다 안 말했으면 initialStep="side", preSelectedSide=null, preSelectedDrink=null로 보낸다.
 
 3. Cart

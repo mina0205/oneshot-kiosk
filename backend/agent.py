@@ -21,6 +21,7 @@ Tier 2  Gemini 필요  (~1500–6000 ms)
   자연어 복합 주문
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
+from __future__ import annotations
 
 import json
 import logging
@@ -394,10 +395,23 @@ def _detect_category(lowered: str) -> str | None:
 
 
 def _find_menus_in_text(text: str) -> list[dict]:
-    """텍스트에서 메뉴명을 길이 내림차순으로 매칭해 반환한다."""
+    """텍스트에서 메뉴명을 길이 내림차순으로 매칭해 반환한다.
+    "(단품)", "(단품L)", "(단품R)", "(6pcs)" 등 괄호 접미사를 제거한 이름으로도 매칭한다.
+    """
     found, seen = [], set()
+    text_ns = text.replace(" ", "")
     for menu in sorted(menus, key=lambda m: -len(m["name"])):
-        if menu["menuId"] not in seen and menu["name"].replace(" ", "") in text.replace(" ", ""):
+        if menu["menuId"] in seen:
+            continue
+        name_ns = menu["name"].replace(" ", "")
+        # 1차: 전체 이름 매칭
+        if name_ns in text_ns:
+            found.append(menu)
+            seen.add(menu["menuId"])
+            continue
+        # 2차: "(단품)", "(단품L)", "(단품R)", "(6pcs)" 등 괄호 접미사 제거 후 매칭
+        name_stripped = re.sub(r"\(.*?\)", "", name_ns)
+        if name_stripped and name_stripped in text_ns:
             found.append(menu)
             seen.add(menu["menuId"])
     return found
@@ -661,8 +675,10 @@ async def _try_fast_bulk_order(session_id: str, user_message: str, req_t0: float
     ]
 
     total_qty = sum(i["quantity"] for i in items)
-    # 단품 1개 qty=1은 Gemini에게 넘김 (세트 여부 확인 필요)
-    if total_qty < 2 and len(items) < 2:
+    # 단품 1개 qty=1은 원칙적으로 Gemini에게 넘김 (세트 여부 확인 필요)
+    # 단, 모든 메뉴가 setPrice=None(사이드·음료·디저트)이면 세트 선택 불필요 → Fast Path 허용
+    all_no_set = all(i["menu"].get("setPrice") is None for i in items)
+    if total_qty < 2 and len(items) < 2 and not all_no_set:
         return None
 
     valid = [i for i in items if not i["menu"].get("soldOut")]

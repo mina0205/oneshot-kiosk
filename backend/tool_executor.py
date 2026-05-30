@@ -84,12 +84,19 @@ async def execute_tool(tool_name: str, args: dict) -> Any:
                                 break
                         else:
                             return {"error": f"'{val}'은(는) 존재하지 않는 옵션입니다. 가능: {', '.join(valid_names)}"}
-                    # 이름이 정확히 일치하지 않는 경우 거부
+                    # 이름이 정확히 일치하지 않는 경우 → 부분 매칭 시도
                     elif val not in valid_names:
-                        return {
-                            "error": f"'{val}'은(는) 선택할 수 없는 옵션입니다. "
-                                    f"선택 가능: {', '.join(valid_names)}"
-                        }
+                        matched = next(
+                            (name for name in valid_names if val in name or name in val),
+                            None,
+                        )
+                        if matched:
+                            body[field] = matched
+                        else:
+                            return {
+                                "error": f"'{val}'은(는) 선택할 수 없는 옵션입니다. "
+                                        f"선택 가능: {', '.join(valid_names)}"
+                            }
                 except Exception as ex:
                     logger.warning("옵션 검증 실패 [%s]: %s", field, ex)
 
